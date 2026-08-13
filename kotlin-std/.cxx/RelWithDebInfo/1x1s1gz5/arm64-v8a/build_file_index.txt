@@ -1,1 +1,0 @@
-/Users/vitaliiandrusyshyn/StudioProjects/Kanvas/kotlin-std/src/cpp/cmemory/CMakeLists.txt

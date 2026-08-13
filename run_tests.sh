@@ -16,7 +16,7 @@
 #  */
 #
 
-./gradlew :kotlin-std:desktopTest
-./gradlew :kotlin-std:jsTest
-./gradlew :kotlin-std:iosSimulatorArm64Test
-./gradlew :kotlin-std:allTests
+./gradlew :extra:desktopTest
+./gradlew :extra:jsTest
+./gradlew :extra:iosSimulatorArm64Test
+./gradlew :extra:allTests

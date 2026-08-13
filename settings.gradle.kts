@@ -31,7 +31,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "kotlin-std"
+rootProject.name = "Extra"
 
-include(":kotlin-std")
-include(":kotlin-std-gen")
+include(":extra")
+include(":extra-gen")

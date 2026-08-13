@@ -1,0 +1,72 @@
+/*
+ * Copyright 2026 CheerWizard
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.cws.extra.math.vectors
+
+import com.cws.extra.memory.ExtraData
+import com.cws.extra.memory.ExtraList
+import kotlin.math.sqrt
+
+@ExtraData
+@ExtraList
+data class UInt2(
+    var x: UInt = 0u,
+    var y: UInt = 0u,
+) {
+    operator fun get(i: UInt): UInt =
+        when (i) {
+            0u -> x
+            1u -> y
+            else -> throw IndexOutOfBoundsException("i=$i out of range [0, 1]")
+        }
+
+    operator fun set(
+        i: UInt,
+        v: UInt,
+    ) = when (i) {
+        0u -> x = v
+        1u -> y = v
+        else -> throw IndexOutOfBoundsException("i=$i out of range [0, 1]")
+    }
+
+    val length: UInt get() {
+        val x = x
+        val y = y
+        return sqrt((x * x + y * y).toDouble()).roundToUInt()
+    }
+
+    operator fun plus(v: UInt): UInt2 = UInt2(x + v, y + v)
+
+    operator fun minus(v: UInt): UInt2 = UInt2(x - v, y - v)
+
+    operator fun times(v: UInt): UInt2 = UInt2(x * v, y * v)
+
+    operator fun div(v: UInt): UInt2 = UInt2(x / v, y / v)
+
+    operator fun plus(v: UInt2): UInt2 = UInt2(x + v.x, y + v.y)
+
+    operator fun minus(v: UInt2): UInt2 = UInt2(x - v.x, y - v.y)
+
+    operator fun times(v: UInt2): UInt2 = UInt2(x * v.x, y * v.y)
+
+    operator fun div(v: UInt2): UInt2 = UInt2(x / v.x, y / v.y)
+
+    constructor(xy: Int2) : this(xy.x.toUInt(), xy.y.toUInt())
+
+    val xx get() = UInt2(x, x)
+    val xy get() = UInt2(x, y)
+    val yx get() = UInt2(y, x)
+    val yy get() = UInt2(y, y)
+}

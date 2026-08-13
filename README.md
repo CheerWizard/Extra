@@ -1,12 +1,12 @@
-# kotlin-std
+# Extra
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.cheerwizard/kotlin-std)](https://search.maven.org/)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.cheerwizard/extra)](https://search.maven.org/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-blue.svg)](https://kotlinlang.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
-**koltin-std** is a modern Kotlin Multiplatform utility library focused on low-level development, performance, and cross-platform consistency.
+**Extra** is a modern Kotlin Multiplatform utility library focused on low-level development, performance, and cross-platform consistency.
 
-Unlike the Kotlin Standard Library, kotlin-std provides additional primitives that are commonly needed when building game engines, graphics applications, native libraries, and other performance-sensitive software.
+Unlike the Kotlin Standard Library, Extra provides additional primitives that are commonly needed when building game engines, graphics applications, native libraries, and other performance-sensitive software.
 
 The project is designed to work consistently across **JVM**, **Android**, **iOS**, **Kotlin/Native**, **JavaScript**, and **WebAssembly**.
 
@@ -51,7 +51,7 @@ The project is designed to work consistently across **JVM**, **Android**, **iOS*
 
 ### Code Generation
 
-The project also includes **kotlin-std-gen**, a KSP processor capable of generating high-performance binary serialization code for kotlin-std memory APIs.
+The project also includes **extra-gen**, a KSP processor capable of generating high-performance binary serialization code for Extra memory APIs.
 
 ---
 
@@ -68,11 +68,11 @@ The project also includes **kotlin-std-gen**, a KSP processor capable of generat
 
 ---
 
-## Why kotlin-std?
+## Why Extra?
 
 Kotlin's standard library intentionally stays relatively small and platform-agnostic.
 
-kotlin-std focuses on functionality frequently required by engine and systems development:
+Extra focuses on functionality frequently required by engine and systems development:
 
 * deterministic binary memory layouts
 * native-style buffers
@@ -88,7 +88,7 @@ The goal is to make writing low-level multiplatform code feel as natural as writ
 
 ```kotlin
 dependencies {
-    implementation("io.github.cheerwizard:kotlin-std:<version>")
+    implementation("io.github.cheerwizard:extra:<version>")
 }
 ```
 
@@ -100,8 +100,8 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.cheerwizard:kotlin-std:<version>")
-    ksp("io.github.cheerwizard:kotlin-std-gen:<version>")
+    implementation("io.github.cheerwizard:extra:<version>")
+    ksp("io.github.cheerwizard:extra-gen:<version>")
 }
 ```
 
