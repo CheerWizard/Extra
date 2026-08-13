@@ -15,7 +15,6 @@
  */
 #ifndef CMEMORY_HPP
 #define CMEMORY_HPP
-
 #include <cstddef>
 
 namespace cmemory {

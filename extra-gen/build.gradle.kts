@@ -38,7 +38,7 @@ spotless {
         target("**/*.kt")
         licenseHeaderFile(
             rootProject.layout.projectDirectory.file("config/license.txt").asFile,
-            "^(@file:|package )"
+            "^(@file:|package)"
         )
     }
     format("cpp") {
@@ -58,7 +58,7 @@ spotless {
 
         licenseHeaderFile(
             rootProject.layout.projectDirectory.file("config/license-cpp.txt").asFile,
-            "^(#pragma once|#include|namespace)"
+            "^(#pragma once|#include|#ifndef|#ifdef|namespace)"
         )
     }
 }
