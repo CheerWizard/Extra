@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cws.extra.soa
+package com.cws.extra.ecs
 
 import com.cws.extra.lists.FloatList
 import com.cws.extra.test.Hero
@@ -401,6 +401,7 @@ class DataLayoutBenchmarkTest {
 
         return mark.elapsedNow().inWholeNanoseconds / 1_000_000.0
     }
+
     @Test
     fun benchmarkFloatLayout() {
         val random = Random(1234)

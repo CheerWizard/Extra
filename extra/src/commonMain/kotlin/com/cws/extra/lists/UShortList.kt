@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun UShortList(
     capacity: Int = 16,
     noinline init: (Int) -> UShort = { 0u }
-) = UShortList(capacity, UShortArray(capacity, init))
+) = UShortList(UShortArray(capacity, init))
 
 @ExtraData
 class UShortList(
+    var array: UShortArray,
     var size: Int = 0,
-    array: UShortArray,
 ) {
-
-    var array: UShortArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class UShortList(
     }
 
     inline fun clone(): UShortList {
-        val copy = UShortList(size, array.copyOf())
+        val copy = UShortList(array.copyOf())
+        copy.size = size
         return copy
     }
 

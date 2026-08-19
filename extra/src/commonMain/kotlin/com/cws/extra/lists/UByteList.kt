@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun UByteList(
     capacity: Int = 16,
     noinline init: (Int) -> UByte = { 0u }
-) = UByteList(capacity, UByteArray(capacity, init))
+) = UByteList(UByteArray(capacity, init))
 
 @ExtraData
 class UByteList(
+    var array: UByteArray,
     var size: Int = 0,
-    array: UByteArray,
 ) {
-
-    var array: UByteArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class UByteList(
     }
 
     inline fun clone(): UByteList {
-        val copy = UByteList(size, array.copyOf())
+        val copy = UByteList(array.copyOf())
+        copy.size = size
         return copy
     }
 

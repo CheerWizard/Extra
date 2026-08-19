@@ -20,11 +20,13 @@ import com.cws.extra.math.operators.dot
 import com.cws.extra.math.operators.normalize
 import com.cws.extra.memory.ExtraData
 import com.cws.extra.memory.ExtraList
+import kotlinx.serialization.Serializable
 import kotlin.math.acos
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+@Serializable
 @ExtraData
 @ExtraList
 data class Quaternion(

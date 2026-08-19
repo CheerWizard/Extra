@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun ByteList(
     capacity: Int = 16,
     noinline init: (Int) -> Byte = { 0 }
-) = ByteList(capacity, ByteArray(capacity, init))
+) = ByteList(ByteArray(capacity, init))
 
 @ExtraData
 class ByteList(
+    var array: ByteArray,
     var size: Int = 0,
-    array: ByteArray,
 ) {
-
-    var array: ByteArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class ByteList(
     }
 
     inline fun clone(): ByteList {
-        val copy = ByteList(size, array.copyOf())
+        val copy = ByteList(array.copyOf())
+        copy.size = size
         return copy
     }
 

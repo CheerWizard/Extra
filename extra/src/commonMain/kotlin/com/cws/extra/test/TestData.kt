@@ -17,11 +17,13 @@ package com.cws.extra.test
 
 import com.cws.extra.math.vectors.*
 import com.cws.extra.math.matrices.*
+import com.cws.extra.memory.ExtraComponent
 import com.cws.extra.memory.ExtraData
 import com.cws.extra.memory.ExtraEnum
 import com.cws.extra.memory.ExtraFixedSize
 import com.cws.extra.memory.ExtraList
 import com.cws.extra.memory.ExtraStringUtf16
+import kotlinx.serialization.Serializable
 import kotlin.math.PI
 
 @ExtraEnum
@@ -170,4 +172,24 @@ data class Hero(
 
     // Generic reference
     val nickname: String?,
+)
+
+@Serializable
+@ExtraData
+@ExtraList
+@ExtraComponent
+data class Movement(
+    val speed: Float,
+//    val dir: Float3,
+)
+
+@Serializable
+@ExtraData
+@ExtraList
+@ExtraComponent
+data class Camera(
+    val fov: Float,
+//    val position: Float3,
+//    val lookAt: Float3,
+//    val projection: Mat4,
 )

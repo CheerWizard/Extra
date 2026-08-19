@@ -28,9 +28,8 @@ class ExtraListProcessor(
     companion object {
         private const val TAG = "ExtraListProcessor"
         private const val LISTS_PACKAGE = "com.cws.extra.lists"
+        private const val PACKAGE_MEMORY = "com.cws.extra.memory"
     }
-
-    private val packageMemory = "com.cws.extra.memory"
 
     private val primitiveLists = mapOf(
         "Int" to "IntList",
@@ -51,7 +50,7 @@ class ExtraListProcessor(
         logger.info("$TAG: Scanning for @ExtraList...")
 
         resolver
-            .getSymbolsWithAnnotation("$packageMemory.ExtraList")
+            .getSymbolsWithAnnotation("$PACKAGE_MEMORY.ExtraList")
             .filterIsInstance<KSClassDeclaration>()
             .filter { declaration ->
                 declaration.annotations.any { it.shortName.asString() == "ExtraList" }
@@ -108,6 +107,7 @@ class ExtraListProcessor(
             getNativeListImport(it)
         }.toSet().joinToString("\n") +
                 "\nimport com.cws.extra.memory.ExtraData\n" +
+                "\nimport com.cws.extra.memory.IExtraList\n" +
                 "\nimport kotlin.random.Random\n"
 
         val constructorArgs = fields.joinToString("\n") {
@@ -186,7 +186,7 @@ class ExtraListProcessor(
                 "class ${type}List(\n" +
                 "    capacity: Int,\n" +
                 "    $constructorArgs\n" +
-                ") {\n" +
+                "): IExtraList {\n" +
 
                 "\n" +
                 secondConstructor +

@@ -21,10 +21,12 @@ import com.cws.extra.math.vectors.Float3
 import com.cws.extra.memory.MemoryLayout
 import com.cws.extra.memory.ExtraList
 import com.cws.extra.memory.sizeBytes
+import kotlinx.serialization.Serializable
 
 fun Mat3.sizeBytes(layout: MemoryLayout) = 9 * Float.sizeBytes(layout)
 fun Mat3.sizeBytesPacked(layout: MemoryLayout) = 9 * Float.sizeBytes(layout)
 
+@Serializable
 @ExtraList
 data class Mat3(
     var m00: Float = 1f,

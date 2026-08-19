@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun ShortList(
     capacity: Int = 16,
     noinline init: (Int) -> Short = { 0 }
-) = ShortList(capacity, ShortArray(capacity, init))
+) = ShortList(ShortArray(capacity, init))
 
 @ExtraData
 class ShortList(
+    var array: ShortArray,
     var size: Int = 0,
-    array: ShortArray,
 ) {
-
-    var array: ShortArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class ShortList(
     }
 
     inline fun clone(): ShortList {
-        val copy = ShortList(size, array.copyOf())
+        val copy = ShortList(array.copyOf())
+        copy.size = size
         return copy
     }
 

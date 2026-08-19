@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun BooleanList(
     capacity: Int = 16,
     noinline init: (Int) -> Boolean = { false }
-) = BooleanList(capacity, BooleanArray(capacity, init))
+) = BooleanList(BooleanArray(capacity, init))
 
 @ExtraData
 class BooleanList(
+    var array: BooleanArray,
     var size: Int = 0,
-    array: BooleanArray,
 ) {
-
-    var array: BooleanArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class BooleanList(
     }
 
     inline fun clone(): BooleanList {
-        val copy = BooleanList(size, array.copyOf())
+        val copy = BooleanList(array.copyOf())
+        copy.size = size
         return copy
     }
 

@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun LongList(
     capacity: Int = 16,
     noinline init: (Int) -> Long = { 0L }
-) = LongList(capacity, LongArray(capacity, init))
+) = LongList(LongArray(capacity, init))
 
 @ExtraData
 class LongList(
-    var size: Int = 0,
-    array: LongArray,
+   var array: LongArray,
+   var size: Int = 0,
 ) {
-
-    var array: LongArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class LongList(
     }
 
     inline fun clone(): LongList {
-        val copy = LongList(size, array.copyOf())
+        val copy = LongList(array.copyOf())
+        copy.size = size
         return copy
     }
 

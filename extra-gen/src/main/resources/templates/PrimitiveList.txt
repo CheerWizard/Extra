@@ -28,15 +28,13 @@ import kotlin.random.Random
 inline fun #TList(
     capacity: Int = 16,
     noinline init: (Int) -> #T = { #DEFAULT_VALUE }
-) = #TList(capacity, #TArray(capacity, init))
+) = #TList(#TArray(capacity, init))
 
 @ExtraData
 class #TList(
+    var array: #TArray,
     var size: Int = 0,
-    array: #TArray,
 ) {
-
-    var array: #TArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -135,7 +133,8 @@ class #TList(
     }
 
     inline fun clone(): #TList {
-        val copy = #TList(size, array.copyOf())
+        val copy = #TList(array.copyOf())
+        copy.size = size
         return copy
     }
 

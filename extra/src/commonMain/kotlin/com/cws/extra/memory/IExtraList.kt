@@ -13,25 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cws.extra.gen
+package com.cws.extra.memory
 
-import com.squareup.kotlinpoet.TypeName
-
-data class Field(
-    val packageName: String,
-    val name: String,
-    val offset: String,
-    var typeName: TypeName,
-    var type: String,
-    var defaultValue: String,
-    val fixedSize: Int?,
-    val isStringUtf16: Boolean,
-    val isNativeEnum: Boolean,
-)
-
-fun Field.sizeExpression(): String = when {
-    isPrimitive -> "$type.SIZE_BYTES"
-    isVariableLength -> "Int.SIZE_BYTES"
-    isCollection -> "Int.SIZE_BYTES"
-    else                         -> "$type.SIZE_BYTES"
-}
+// just used as marker to recast it to specific list
+interface IExtraList

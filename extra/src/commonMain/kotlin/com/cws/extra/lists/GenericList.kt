@@ -27,12 +27,10 @@ inline fun <reified T> GenericList(
 
 // generic list implementation for SoA, which is less optimized because it uses heap allocations and object references during read/write
 class GenericList<T>(
-    array: Array<T>,
+    var array: Array<T>,
     val init: (Int) -> T,
     size: Int = 0,
 ) : Collection<T> {
-
-    var array: Array<T> = array
 
     var _size = size
 

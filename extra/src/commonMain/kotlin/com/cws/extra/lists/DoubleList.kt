@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun DoubleList(
     capacity: Int = 16,
     noinline init: (Int) -> Double = { 0.0 }
-) = DoubleList(capacity, DoubleArray(capacity, init))
+) = DoubleList(DoubleArray(capacity, init))
 
 @ExtraData
 class DoubleList(
+    var array: DoubleArray,
     var size: Int = 0,
-    array: DoubleArray,
 ) {
-
-    var array: DoubleArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class DoubleList(
     }
 
     inline fun clone(): DoubleList {
-        val copy = DoubleList(size, array.copyOf())
+        val copy = DoubleList(array.copyOf())
+        copy.size = size
         return copy
     }
 

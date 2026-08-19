@@ -41,3 +41,8 @@ annotation class ExtraStringUtf16
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.SOURCE)
 annotation class ExtraList
+
+// use this annotation to generate components storage for annotated class used in ECS
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.SOURCE)
+annotation class ExtraComponent

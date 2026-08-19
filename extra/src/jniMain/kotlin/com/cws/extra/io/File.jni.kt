@@ -96,6 +96,7 @@ actual class File actual constructor(
         offset: Int,
         size: Int,
     ): Int {
+        fileChannel?.position(0)
         return fileChannel?.read(ByteBuffer.wrap(bytes, offset, size)) ?: size
     }
 
@@ -104,11 +105,13 @@ actual class File actual constructor(
         offset: Int,
         size: Int,
     ): Int {
+        fileChannel?.position(0)
         val buffer = buffer.buffer ?: return 0
         return fileChannel?.read(buffer) ?: size
     }
 
     internal actual suspend fun flushImpl() {
+        // no-op
     }
 
     internal actual suspend fun closeImpl() {

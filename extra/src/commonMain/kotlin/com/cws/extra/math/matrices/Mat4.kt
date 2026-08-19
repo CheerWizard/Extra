@@ -31,6 +31,7 @@ import com.cws.extra.math.vectors.Quaternion
 import com.cws.extra.memory.MemoryLayout
 import com.cws.extra.memory.ExtraList
 import com.cws.extra.memory.sizeBytes
+import kotlinx.serialization.Serializable
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.tan
@@ -38,6 +39,7 @@ import kotlin.math.tan
 fun Mat4.sizeBytes(layout: MemoryLayout) = 16 * Float.sizeBytes(layout)
 fun Mat4.sizeBytesPacked(layout: MemoryLayout) = 16 * Float.sizeBytes(layout)
 
+@Serializable
 @ExtraList
 data class Mat4(
     var m00: Float = 1f,

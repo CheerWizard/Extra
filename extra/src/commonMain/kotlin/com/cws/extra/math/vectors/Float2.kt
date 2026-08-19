@@ -18,8 +18,10 @@ package com.cws.extra.math.vectors
 import com.cws.extra.math.matrices.Mat2
 import com.cws.extra.memory.ExtraData
 import com.cws.extra.memory.ExtraList
+import kotlinx.serialization.Serializable
 import kotlin.math.sqrt
 
+@Serializable
 @ExtraData
 @ExtraList
 data class Float2(

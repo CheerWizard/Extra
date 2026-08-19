@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun CharList(
     capacity: Int = 16,
     noinline init: (Int) -> Char = { '\u0000' }
-) = CharList(capacity, CharArray(capacity, init))
+) = CharList(CharArray(capacity, init))
 
 @ExtraData
 class CharList(
+    var array: CharArray,
     var size: Int = 0,
-    array: CharArray,
 ) {
-
-    var array: CharArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class CharList(
     }
 
     inline fun clone(): CharList {
-        val copy = CharList(size, array.copyOf())
+        val copy = CharList(array.copyOf())
+        copy.size = size
         return copy
     }
 

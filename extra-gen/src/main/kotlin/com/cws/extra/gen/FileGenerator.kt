@@ -39,4 +39,14 @@ class FileGenerator(
             }
     }
 
+    fun readTemplate(name: String): String {
+        val file = "templates/$name.txt"
+        logger.warn("readTemplate: $file")
+        return FileGenerator::class.java.classLoader
+            .getResourceAsStream(file)
+            ?.bufferedReader()
+            ?.readText()
+            ?: error("File not found $file")
+    }
+
 }

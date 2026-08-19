@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun UIntList(
     capacity: Int = 16,
     noinline init: (Int) -> UInt = { 0u }
-) = UIntList(capacity, UIntArray(capacity, init))
+) = UIntList(UIntArray(capacity, init))
 
 @ExtraData
 class UIntList(
+    var array: UIntArray,
     var size: Int = 0,
-    array: UIntArray,
 ) {
-
-    var array: UIntArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class UIntList(
     }
 
     inline fun clone(): UIntList {
-        val copy = UIntList(size, array.copyOf())
+        val copy = UIntList(array.copyOf())
+        copy.size = size
         return copy
     }
 

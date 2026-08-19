@@ -55,8 +55,10 @@ class ExtraProcessor(
     private val fileGenerator = FileGenerator(logger, generator)
 
     private val extraListProcessor = ExtraListProcessor(logger, fileGenerator)
+    private val extraComponentStorageProcessor = ExtraComponentStorageProcessor(logger, fileGenerator)
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        extraComponentStorageProcessor.process(resolver)
         extraListProcessor.process(resolver)
         scanExtraData(resolver)
         scanExtraEnum(resolver)
@@ -90,6 +92,16 @@ class ExtraProcessor(
         val packageName = declaration.packageName.asString()
         val className = declaration.qualifiedName()
         val fields = declaration.createFields()
+
+        if (className.simpleName.contains("Scene")) {
+            val componentRegistry = ExtraComponentStorageProcessor.COMPONENT_REGISTRY
+            val registryPackage = ExtraComponentStorageProcessor.PACKAGE_ECS
+            val errorType = "<ERROR TYPE: $componentRegistry>"
+            val registry = fields.find { it.type.contains(componentRegistry) } ?: return
+            registry.typeName = ClassName(registryPackage, componentRegistry)
+            registry.type = registry.type.replace(errorType, componentRegistry)
+            registry.defaultValue = registry.defaultValue.replace(errorType, "${componentRegistry}(16)")
+        }
 
         val fileSpec = FileSpec.builder(packageName, className.simpleName)
 
@@ -966,22 +978,12 @@ class ExtraProcessor(
     private fun generatePrimitiveList(pkg: String, type: String, default: String) {
         if (fileGenerator.contains("${type}List")) return
 
-        val code = readTemplate("PrimitiveList")
+        val code = fileGenerator.readTemplate("PrimitiveList")
             .replace("#pkg", pkg)
             .replace("#T", type)
             .replace("#DEFAULT_VALUE", default)
 
         fileGenerator.generateFile(pkg, "${type}List", code)
-    }
-
-    private fun readTemplate(name: String): String {
-        val file = "templates/$name.txt"
-        logger.warn("readTemplate: $file")
-        return ExtraProcessor::class.java.classLoader
-            .getResourceAsStream(file)
-            ?.bufferedReader()
-            ?.readText()
-            ?: error("File not found $file")
     }
 
 }

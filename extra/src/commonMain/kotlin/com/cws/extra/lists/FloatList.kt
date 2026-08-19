@@ -27,15 +27,13 @@ import kotlin.random.Random
 inline fun FloatList(
     capacity: Int = 16,
     noinline init: (Int) -> Float = { 0f }
-) = FloatList(capacity, FloatArray(capacity, init))
+) = FloatList(FloatArray(capacity, init))
 
 @ExtraData
 class FloatList(
+    var array: FloatArray,
     var size: Int = 0,
-    array: FloatArray,
 ) {
-
-    var array: FloatArray = array
 
     inline val capacity: Int
         get() = array.size
@@ -134,7 +132,8 @@ class FloatList(
     }
 
     inline fun clone(): FloatList {
-        val copy = FloatList(size, array.copyOf())
+        val copy = FloatList(array.copyOf())
+        copy.size = size
         return copy
     }
 
