@@ -17,6 +17,7 @@
 
 package com.cws.extra.memory
 
+@ExtraEnum
 enum class MemoryLayout {
     KOTLIN, // standard Kotlin layout same as in any other language
     STD140, // standard layout for Uniform Buffer objects on GPU
@@ -165,3 +166,7 @@ fun DoubleArray.sizeBytes(layout: MemoryLayout) = size * Double.sizeBytes(layout
 fun String.sizeBytesUtf8(layout: MemoryLayout) = length * Byte.sizeBytes(layout)
 
 fun String.sizeBytesUtf16(layout: MemoryLayout) = length * Char.sizeBytes(layout)
+
+fun NativeBuffer.sizeBytes(layout: MemoryLayout) = Int.sizeBytes(layout) + memoryLayout.sizeBytes(layout) + memoryBoundary.sizeBytes(layout) + endian.sizeBytes(layout) + limit
+
+fun NativeBuffer.sizeBytesPacked(layout: MemoryLayout) = Int.sizeBytes(layout) + memoryLayout.sizeBytesPacked(layout) + memoryBoundary.sizeBytesPacked(layout) + endian.sizeBytesPacked(layout) + limit

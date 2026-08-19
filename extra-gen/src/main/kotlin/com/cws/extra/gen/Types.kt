@@ -69,6 +69,9 @@ val Field.isListCollection get() = type.isListCollection
 val String.isCollection get() = isListCollection || isMap
 val Field.isCollection get() = type.isCollection
 
+val String.isNativeBuffer get() = this == "NativeBuffer"
+val Field.isNativeBuffer get() = type.isNativeBuffer
+
 val typesWithDefaults = mapOf(
     "Boolean" to "false",
     "Byte" to "0",

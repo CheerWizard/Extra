@@ -20,11 +20,13 @@ import com.cws.extra.math.matrices.Mat2
 import com.cws.extra.math.matrices.Mat3
 import com.cws.extra.math.matrices.Mat4
 
+@ExtraEnum
 enum class Endian {
     LITTLE,
     BIG,
 }
 
+@ExtraEnum
 enum class MemoryBoundary {
     // memory will live in scope of Kotlin VM heap,
     // useful for data < KOTLIN_HEAP_MAX_CAPACITY or data that could be safely copied
@@ -1242,6 +1244,30 @@ inline fun <K, V> NativeBuffer.pushPackedMap(
         encodeKey(k)
         encodeValue(v)
     }
+}
+
+fun NativeBuffer.pushNativeBuffer(nativeBuffer: NativeBuffer) {
+    nativeBuffer.flip()
+    val size = nativeBuffer.limit
+    pushInt(size)
+    nativeBuffer.memoryLayout.encode(this)
+    nativeBuffer.memoryBoundary.encode(this)
+    nativeBuffer.endian.encode(this)
+    nativeBuffer.copyTo(dest = this, srcIndex = 0, destIndex = position, sizeBytes = size)
+    position += size
+}
+
+fun NativeBuffer.nextNativeBuffer(): NativeBuffer {
+    val size = nextInt()
+    val decoded = NativeBuffer(
+        capacity = size,
+        memoryLayout = decodeMemoryLayout(),
+        memoryBoundary = decodeMemoryBoundary(),
+        endian = decodeEndian(),
+    )
+    copyTo(dest = decoded, srcIndex = position, destIndex = 0, sizeBytes = size)
+    position += size
+    return decoded
 }
 
 internal fun NativeBuffer.packShort(

@@ -534,6 +534,10 @@ class ExtraProcessor(
                             addStatement("buffer.push${field.type}$majorSuffix(${field.name})")
                         }
 
+                        field.isNativeBuffer -> {
+                            addStatement("buffer.pushNativeBuffer(${field.name})")
+                        }
+
                         field.isVariableLength -> {
                             val fieldType = if (field.isString) {
                                 if (field.isStringUtf16) "StringUtf16" else "StringUtf8"
@@ -605,6 +609,10 @@ class ExtraProcessor(
                                 "RowMajor"
                             }
                             addStatement("buffer.push${field.type}$majorSuffix(${field.name})")
+                        }
+
+                        field.isNativeBuffer -> {
+                            addStatement("buffer.pushNativeBuffer(${field.name})")
                         }
 
                         field.isVariableLength -> {
@@ -681,6 +689,10 @@ class ExtraProcessor(
                                 "RowMajor"
                             }
                             addStatement("  next${field.type}$majorSuffix(),")
+                        }
+
+                        field.isNativeBuffer -> {
+                            addStatement("  nextNativeBuffer(),")
                         }
 
                         field.isVariableLength -> {
@@ -824,6 +836,10 @@ class ExtraProcessor(
                         "$bufferExpr.push$simple$majorSuffix(it)"
                     }
 
+                    simple.isNativeBuffer -> {
+                        "$bufferExpr.pushNativeBuffer(it)"
+                    }
+
                     simple.isVariableLength -> {
                         if (nonNull.simpleName.isString) {
                             simple = if (typeName.extraStringUtf16()) "StringUtf16" else "StringUtf8"
@@ -888,6 +904,9 @@ class ExtraProcessor(
                             "RowMajor"
                         }
                         "$bufferExpr.next$simple$majorSuffix()"
+                    }
+                    simple.isNativeBuffer -> {
+                        "$bufferExpr.nextNativeBuffer()"
                     }
                     simple.isVariableLength -> {
                         if (nonNull.simpleName.isString) {

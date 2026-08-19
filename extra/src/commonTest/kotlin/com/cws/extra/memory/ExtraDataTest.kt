@@ -22,6 +22,7 @@ import com.cws.extra.test.decodeTestData
 import com.cws.extra.test.encode
 import com.cws.extra.math.matrices.*
 import com.cws.extra.math.vectors.*
+import com.cws.extra.test.decodeNestedData
 import kotlin.math.PI
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -60,6 +61,60 @@ class ExtraDataTest {
                 floats = floatArrayOf(0.1f, 0.2f, 0.3f),
                 fixedDoubles = DoubleArray(36) { it.toDouble() },
                 doubles = doubleArrayOf(9.9, 8.8, 7.7),
+                nestedDataBuffer = TestData.NestedData(
+                    id = 1L,
+
+                    float2 = Float2(1.1f, 2.2f),
+                    float3 = Float3(3.3f, 4.4f, 5.5f),
+                    float4 = Float4(6.6f, 7.7f, 8.8f, 9.9f),
+
+                    int2 = Int2(10, 11),
+                    int3 = Int3(12, 13, 14),
+                    int4 = Int4(15, 16, 17, 18),
+
+                    uint2 = UInt2(19u, 20u),
+                    uInt3 = UInt3(21u, 22u, 23u),
+                    uInt4 = UInt4(24u, 25u, 26u, 27u),
+
+                    mat2 = Mat2(
+                        1f, 2f,
+                        3f, 4f
+                    ),
+
+                    mat3 = Mat3(
+                        1f, 2f, 3f,
+                        4f, 5f, 6f,
+                        7f, 8f, 9f
+                    ),
+
+                    mat4 = Mat4(
+                        1f, 2f, 3f, 4f,
+                        5f, 6f, 7f, 8f,
+                        9f, 10f, 11f, 12f,
+                        13f, 14f, 15f, 16f
+                    ),
+
+                    quaternion = Quaternion(
+                        x = 0.1f,
+                        y = 0.2f,
+                        z = 0.3f,
+                        w = 1.0f
+                    ),
+
+                    data = mapOf(
+                        "data_1" to "some data",
+                        "data_2" to "some data shqufbqvu9q",
+                        "data_3" to "",
+                        "data_4" to PI.toString(),
+                    ),
+
+                    subscribers = setOf(
+                        "sub1",
+                        "sub2",
+                        "sub3",
+                        "sub4"
+                    )
+                ).encode(),
                 data = listOf(
                     TestData.NestedData(
                         id = 1L,
@@ -166,29 +221,34 @@ class ExtraDataTest {
         assertContentEquals(testData.fixedDoubles, decoded.fixedDoubles)
         assertContentEquals(testData.doubles, decoded.doubles)
         assertEquals(testData.data.size, decoded.data.size)
+        assertNestedData(0, testData.nestedDataBuffer.decodeNestedData(), decoded.nestedDataBuffer.decodeNestedData())
         testData.data.zip(decoded.data).forEachIndexed { index, (expected, actual) ->
-            assertEquals(expected.id, actual.id, "NestedData[$index].id mismatch")
-
-            assertEquals(expected.float2, actual.float2)
-            assertEquals(expected.float3, actual.float3)
-            assertEquals(expected.float4, actual.float4)
-
-            assertEquals(expected.int2, actual.int2)
-            assertEquals(expected.int3, actual.int3)
-            assertEquals(expected.int4, actual.int4)
-
-            assertEquals(expected.uint2, actual.uint2)
-            assertEquals(expected.uInt3, actual.uInt3)
-            assertEquals(expected.uInt4, actual.uInt4)
-
-            assertEquals(expected.mat2, actual.mat2)
-            assertEquals(expected.mat3, actual.mat3)
-            assertEquals(expected.mat4, actual.mat4)
-
-            assertEquals(expected.quaternion, actual.quaternion)
-
-            assertEquals(expected.data, actual.data)
-            assertEquals(expected.subscribers, actual.subscribers)
+           assertNestedData(index, expected, actual)
         }
+    }
+
+    private fun assertNestedData(index: Int, expected: TestData.NestedData, actual: TestData.NestedData) {
+        assertEquals(expected.id, actual.id, "NestedData[$index].id mismatch")
+
+        assertEquals(expected.float2, actual.float2)
+        assertEquals(expected.float3, actual.float3)
+        assertEquals(expected.float4, actual.float4)
+
+        assertEquals(expected.int2, actual.int2)
+        assertEquals(expected.int3, actual.int3)
+        assertEquals(expected.int4, actual.int4)
+
+        assertEquals(expected.uint2, actual.uint2)
+        assertEquals(expected.uInt3, actual.uInt3)
+        assertEquals(expected.uInt4, actual.uInt4)
+
+        assertEquals(expected.mat2, actual.mat2)
+        assertEquals(expected.mat3, actual.mat3)
+        assertEquals(expected.mat4, actual.mat4)
+
+        assertEquals(expected.quaternion, actual.quaternion)
+
+        assertEquals(expected.data, actual.data)
+        assertEquals(expected.subscribers, actual.subscribers)
     }
 }

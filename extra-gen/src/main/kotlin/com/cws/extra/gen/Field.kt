@@ -33,5 +33,5 @@ fun Field.sizeExpression(): String = when {
     isPrimitive -> "$type.SIZE_BYTES"
     isVariableLength -> "Int.SIZE_BYTES"
     isCollection -> "Int.SIZE_BYTES"
-    else                         -> "$type.SIZE_BYTES"
+    else -> "$type.SIZE_BYTES"
 }

@@ -23,6 +23,7 @@ import com.cws.extra.memory.ExtraEnum
 import com.cws.extra.memory.ExtraFixedSize
 import com.cws.extra.memory.ExtraList
 import com.cws.extra.memory.ExtraStringUtf16
+import com.cws.extra.memory.NativeBuffer
 import kotlinx.serialization.Serializable
 import kotlin.math.PI
 
@@ -87,6 +88,7 @@ data class TestData(
     @ExtraFixedSize(36)
     val fixedDoubles: DoubleArray,
     val doubles: DoubleArray,
+    val nestedDataBuffer: NativeBuffer,
     val data: List<NestedData>,
 ) {
 
