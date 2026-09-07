@@ -15,10 +15,50 @@
  */
 package com.cws.extra.memory
 
+// use this annotation to generate C/C++ bridge for current interface
+// all function under this annotated class will get generated version on C++ side
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.SOURCE)
+annotation class ExtraBridge(
+    val libName: String,
+    val transport: Transport = Transport.ALL
+) {
+
+    enum class Transport {
+        // generate only JNI transport layer
+        JNI,
+        // generate only C-interop transport layer
+        CINTEROP,
+        // generate ALL transport layers
+        ALL;
+    }
+
+}
+
+// use this annotation to generate encodings for annotated class and use it for bridge
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.SOURCE)
+annotation class ExtraBridgeData
+
+// use this annotation to generate encodings for annotated SoA class and use it for bridge
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.SOURCE)
+annotation class ExtraBridgeDataSoA
+
+// use this annotation to generate encodings for annotated enum and use it for bridge
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.SOURCE)
+annotation class ExtraBridgeEnum
+
 // use this annotation to generate encodings for annotated class
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.SOURCE)
 annotation class ExtraData
+
+// use this annotation to generate encodings for annotated SoA class
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.SOURCE)
+annotation class ExtraDataSoA
 
 // use this annotation to generate encodings for annotated enum
 @Target(AnnotationTarget.CLASS)
@@ -45,4 +85,14 @@ annotation class ExtraList
 // use this annotation to generate components storage for annotated class used in ECS
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.SOURCE)
-annotation class ExtraComponent
+annotation class ExtraComponent(
+    // range in [0f, 1f]
+    // default = 0.2f (20%)
+    // describes what % of entity capacity this component will initially occupy
+    // useful for optimizing preallocation of components by types
+    // Example:
+    // Transform - usually is 0.9f-1f (90%-100%), used almost on every entity
+    // SoundSource - can be 0.2f-0.3f (20%-30%), not used frequently in scene
+    // Animation - can be 0.1f-0.15f (10%-15%), used rarely, mostly for characters or enemies
+    val entityCountPercentage: Float = 0.2f
+)

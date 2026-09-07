@@ -19,6 +19,10 @@
 package com.cws.extra.lists
 
 import com.cws.extra.memory.ExtraData
+import com.cws.extra.memory.NativeBuffer
+import com.cws.extra.memory.nextByte
+import com.cws.extra.memory.pushByte
+import kotlinx.serialization.Serializable
 
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -27,13 +31,17 @@ import kotlin.random.Random
 inline fun ByteList(
     capacity: Int = 16,
     noinline init: (Int) -> Byte = { 0 }
-) = ByteList(ByteArray(capacity, init))
+) = ByteList(0, ByteArray(capacity, init))
 
+@Serializable
 @ExtraData
 class ByteList(
-    var array: ByteArray,
     var size: Int = 0,
+    var array: ByteArray,
 ) {
+
+    @PublishedApi
+    internal var __sortStack: LongArray? = null
 
     inline val capacity: Int
         get() = array.size
@@ -105,8 +113,20 @@ class ByteList(
 
     inline fun removeLast(): Byte = pop()
 
+    inline fun resize(newSize: Int) {
+        if (newSize > capacity) {
+            reallocate(newSize)
+        }
+        size = newSize
+    }
+
     inline fun ensureCapacity(newCapacity: Int) {
-        if (newCapacity <= array.size) return
+        if (newCapacity > array.size) {
+            reallocate(newCapacity)
+        }
+    }
+
+    inline fun reallocate(newCapacity: Int) {
         array = array.copyOf((newCapacity * 1.1f).roundToInt())
     }
 
@@ -132,9 +152,7 @@ class ByteList(
     }
 
     inline fun clone(): ByteList {
-        val copy = ByteList(array.copyOf())
-        copy.size = size
-        return copy
+        return ByteList(size, array.copyOf())
     }
 
     inline fun forEach(block: (Byte) -> Unit) {
@@ -181,6 +199,16 @@ class ByteList(
         return result
     }
 
+    inline fun filterWith(block: (Byte) -> Boolean): ByteList {
+        var writeIndex = 0
+        for (readIndex in 0 until size) {
+            val value = array[readIndex]
+            if (block(value)) array[writeIndex++] = value
+        }
+        size = writeIndex
+        return this
+    }
+
     inline fun sort() {
         array.sort(0, size)
     }
@@ -194,6 +222,183 @@ class ByteList(
 
     inline fun sortedDescending(): ByteList =
         clone().apply { sortDescending() }
+
+
+    inline fun sortByInt(crossinline selector: (Byte) -> Int) {
+        if (size < 2) return
+        val stack = __sortStack ?: LongArray(64).also { __sortStack = it }
+        var stackSize = 0
+        stack[stackSize++] = (size - 1).toLong() and 0xffffffffL
+
+        while (stackSize > 0) {
+            val range = stack[--stackSize]
+            var from = (range ushr 32).toInt()
+            var to = range.toInt()
+
+            while (from < to) {
+                var left = from
+                var right = to
+                val first = selector(array[from])
+                val middle = selector(array[(from + to) ushr 1])
+                val last = selector(array[to])
+                val pivot = if (first < middle) {
+                    if (middle < last) middle else if (first < last) last else first
+                } else {
+                    if (first < last) first else if (middle < last) last else middle
+                }
+
+                while (left <= right) {
+                    while (selector(array[left]) < pivot) left++
+                    while (selector(array[right]) > pivot) right--
+                    if (left <= right) {
+                        val value = array[left]
+                        array[left++] = array[right]
+                        array[right--] = value
+                    }
+                }
+
+                if (right - from < to - left) {
+                    if (left < to) stack[stackSize++] = (left.toLong() shl 32) or (to.toLong() and 0xffffffffL)
+                    to = right
+                } else {
+                    if (from < right) stack[stackSize++] = (from.toLong() shl 32) or (right.toLong() and 0xffffffffL)
+                    from = left
+                }
+            }
+        }
+    }
+
+    inline fun sortByLong(crossinline selector: (Byte) -> Long) {
+        if (size < 2) return
+        val stack = __sortStack ?: LongArray(64).also { __sortStack = it }
+        var stackSize = 0
+        stack[stackSize++] = (size - 1).toLong() and 0xffffffffL
+
+        while (stackSize > 0) {
+            val range = stack[--stackSize]
+            var from = (range ushr 32).toInt()
+            var to = range.toInt()
+
+            while (from < to) {
+                var left = from
+                var right = to
+                val first = selector(array[from])
+                val middle = selector(array[(from + to) ushr 1])
+                val last = selector(array[to])
+                val pivot = if (first < middle) {
+                    if (middle < last) middle else if (first < last) last else first
+                } else {
+                    if (first < last) first else if (middle < last) last else middle
+                }
+
+                while (left <= right) {
+                    while (selector(array[left]) < pivot) left++
+                    while (selector(array[right]) > pivot) right--
+                    if (left <= right) {
+                        val value = array[left]
+                        array[left++] = array[right]
+                        array[right--] = value
+                    }
+                }
+
+                if (right - from < to - left) {
+                    if (left < to) stack[stackSize++] = (left.toLong() shl 32) or (to.toLong() and 0xffffffffL)
+                    to = right
+                } else {
+                    if (from < right) stack[stackSize++] = (from.toLong() shl 32) or (right.toLong() and 0xffffffffL)
+                    from = left
+                }
+            }
+        }
+    }
+
+    inline fun sortByFloat(crossinline selector: (Byte) -> Float) {
+        if (size < 2) return
+        val stack = __sortStack ?: LongArray(64).also { __sortStack = it }
+        var stackSize = 0
+        stack[stackSize++] = (size - 1).toLong() and 0xffffffffL
+
+        while (stackSize > 0) {
+            val range = stack[--stackSize]
+            var from = (range ushr 32).toInt()
+            var to = range.toInt()
+
+            while (from < to) {
+                var left = from
+                var right = to
+                val first = selector(array[from])
+                val middle = selector(array[(from + to) ushr 1])
+                val last = selector(array[to])
+                val pivot = if (first < middle) {
+                    if (middle < last) middle else if (first < last) last else first
+                } else {
+                    if (first < last) first else if (middle < last) last else middle
+                }
+
+                while (left <= right) {
+                    while (selector(array[left]) < pivot) left++
+                    while (selector(array[right]) > pivot) right--
+                    if (left <= right) {
+                        val value = array[left]
+                        array[left++] = array[right]
+                        array[right--] = value
+                    }
+                }
+
+                if (right - from < to - left) {
+                    if (left < to) stack[stackSize++] = (left.toLong() shl 32) or (to.toLong() and 0xffffffffL)
+                    to = right
+                } else {
+                    if (from < right) stack[stackSize++] = (from.toLong() shl 32) or (right.toLong() and 0xffffffffL)
+                    from = left
+                }
+            }
+        }
+    }
+
+    inline fun sortByDouble(crossinline selector: (Byte) -> Double) {
+        if (size < 2) return
+        val stack = __sortStack ?: LongArray(64).also { __sortStack = it }
+        var stackSize = 0
+        stack[stackSize++] = (size - 1).toLong() and 0xffffffffL
+
+        while (stackSize > 0) {
+            val range = stack[--stackSize]
+            var from = (range ushr 32).toInt()
+            var to = range.toInt()
+
+            while (from < to) {
+                var left = from
+                var right = to
+                val first = selector(array[from])
+                val middle = selector(array[(from + to) ushr 1])
+                val last = selector(array[to])
+                val pivot = if (first < middle) {
+                    if (middle < last) middle else if (first < last) last else first
+                } else {
+                    if (first < last) first else if (middle < last) last else middle
+                }
+
+                while (left <= right) {
+                    while (selector(array[left]) < pivot) left++
+                    while (selector(array[right]) > pivot) right--
+                    if (left <= right) {
+                        val value = array[left]
+                        array[left++] = array[right]
+                        array[right--] = value
+                    }
+                }
+
+                if (right - from < to - left) {
+                    if (left < to) stack[stackSize++] = (left.toLong() shl 32) or (to.toLong() and 0xffffffffL)
+                    to = right
+                } else {
+                    if (from < right) stack[stackSize++] = (from.toLong() shl 32) or (right.toLong() and 0xffffffffL)
+                    from = left
+                }
+            }
+        }
+    }
 
     fun sortWith(comparator: (Byte, Byte) -> Int) {
 
@@ -277,3 +482,11 @@ class ByteList(
         size += source.size
     }
 }
+
+inline fun ByteList.encode(i: Int, buffer: NativeBuffer) = buffer.pushByte(array[i])
+inline fun ByteList.encodeGpu(i: Int, buffer: NativeBuffer) = buffer.pushByte(array[i])
+inline fun ByteList.encodePacked(i: Int, buffer: NativeBuffer) = buffer.pushByte(array[i])
+
+inline fun ByteList.decode(i: Int, buffer: NativeBuffer) { array[i] = buffer.nextByte() }
+inline fun ByteList.decodeGpu(i: Int, buffer: NativeBuffer) { array[i] = buffer.nextByte() }
+inline fun ByteList.decodePacked(i: Int, buffer: NativeBuffer) { array[i] = buffer.nextByte() }

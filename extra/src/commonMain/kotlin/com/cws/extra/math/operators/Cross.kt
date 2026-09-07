@@ -15,14 +15,19 @@
  */
 package com.cws.extra.math.operators
 
-import com.cws.extra.math.vectors.Float2
-import com.cws.extra.math.vectors.Float3
-import com.cws.extra.math.vectors.Float4
+import com.cws.extra.math.vectors.*
 
 fun cross(
     v1: Float2,
     v2: Float2,
 ): Float = v1.x * v2.y - v1.y * v2.x
+
+fun cross(
+    l1: Float2List,
+    i1: Int,
+    l2: Float2List,
+    i2: Int,
+): Float = l1.x[i1] * l2.y[i2] - l1.y[i1] * l2.x[i2]
 
 fun cross(
     v1: Float3,
@@ -35,6 +40,23 @@ fun cross(
     )
 
 fun cross(
+    l1: Float3List,
+    i1: Int,
+    l2: Float3List,
+    i2: Int,
+    out: Float3List,
+    outI: Int,
+): Float3List {
+    val x = l1.y[i1] * l2.z[i2] - l1.z[i1] * l2.y[i2]
+    val y = l1.z[i1] * l2.x[i2] - l1.x[i1] * l2.z[i2]
+    val z = l1.x[i1] * l2.y[i2] - l1.y[i1] * l2.x[i2]
+    out.x[outI] = x
+    out.y[outI] = y
+    out.z[outI] = z
+    return out
+}
+
+fun cross(
     v1: Float4,
     v2: Float4,
 ): Float4 {
@@ -42,4 +64,22 @@ fun cross(
     val y = v1.z * v2.x - v1.x * v2.z
     val z = v1.x * v2.y - v1.y * v2.x
     return Float4(x, y, z, 0f)
+}
+
+fun cross(
+    l1: Float4List,
+    i1: Int,
+    l2: Float4List,
+    i2: Int,
+    out: Float4List,
+    outI: Int,
+): Float4List {
+    val x = l1.y[i1] * l2.z[i2] - l1.z[i1] * l2.y[i2]
+    val y = l1.z[i1] * l2.x[i2] - l1.x[i1] * l2.z[i2]
+    val z = l1.x[i1] * l2.y[i2] - l1.y[i1] * l2.x[i2]
+    out.x[outI] = x
+    out.y[outI] = y
+    out.z[outI] = z
+    out.w[outI] = 0f
+    return out
 }

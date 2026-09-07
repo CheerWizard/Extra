@@ -15,9 +15,7 @@
  */
 package com.cws.extra.math.operators
 
-import com.cws.extra.math.vectors.Float2
-import com.cws.extra.math.vectors.Float3
-import com.cws.extra.math.vectors.Float4
+import com.cws.extra.math.vectors.*
 
 fun reflect(
     i: Float2,
@@ -25,11 +23,56 @@ fun reflect(
 ) = i - n * (2f * dot(n, i))
 
 fun reflect(
+    il: Float2List,
+    ii: Int,
+    nl: Float2List,
+    ni: Int,
+    out: Float2List,
+    oi: Int,
+): Float2List {
+    val d = dot(nl, ni, il, ii)
+    out.x[oi] = il.x[ii] - nl.x[ni] * (2f * d)
+    out.y[oi] = il.y[ii] - nl.y[ni] * (2f * d)
+    return out
+}
+
+fun reflect(
     i: Float3,
     n: Float3,
 ) = i - n * (2f * dot(n, i))
 
 fun reflect(
+    il: Float3List,
+    ii: Int,
+    nl: Float3List,
+    ni: Int,
+    out: Float3List,
+    oi: Int,
+): Float3List {
+    val d = dot(nl, ni, il, ii)
+    out.x[oi] = il.x[ii] - nl.x[ni] * (2f * d)
+    out.y[oi] = il.y[ii] - nl.y[ni] * (2f * d)
+    out.z[oi] = il.z[ii] - nl.z[ni] * (2f * d)
+    return out
+}
+
+fun reflect(
     i: Float4,
     n: Float4,
 ) = i - n * (2f * dot(n, i))
+
+fun reflect(
+    il: Float4List,
+    ii: Int,
+    nl: Float4List,
+    ni: Int,
+    out: Float4List,
+    oi: Int,
+): Float4List {
+    val d = dot(nl, ni, il, ii)
+    out.x[oi] = il.x[ii] - nl.x[ni] * (2f * d)
+    out.y[oi] = il.y[ii] - nl.y[ni] * (2f * d)
+    out.z[oi] = il.z[ii] - nl.z[ni] * (2f * d)
+    out.w[oi] = il.w[ii] - nl.w[ni] * (2f * d)
+    return out
+}

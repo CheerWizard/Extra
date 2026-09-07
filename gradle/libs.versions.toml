@@ -13,7 +13,9 @@ robolectric = "4.16.1"
 ksp = "2.3.8"
 kotlinpoet = "2.3.0"
 spotless = "8.8.0"
+jmhPlugin = "0.7.3"
 kotlinWebWrapper = "2026.7.7"
+ktor = "3.5.1"
 
 [libraries]
 kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
@@ -28,6 +30,11 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinxBrowserVersion" }
 kotlin-web = { module = "org.jetbrains.kotlin-wrappers:kotlin-web", version.ref = "kotlinWebWrapper" }
 kotlin-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", version.ref = "kotlinWebWrapper" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-http = { module = "io.ktor:ktor-http", version.ref = "ktor" }
+ktor-io = { module = "io.ktor:ktor-io", version.ref = "ktor" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 symbol-processing-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
 
@@ -39,3 +46,4 @@ nmcp = { id = "com.gradleup.nmcp", version = "1.6.1" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmhPlugin" }

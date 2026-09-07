@@ -16,41 +16,19 @@
 package com.cws.extra.gen
 
 import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.TypeName
 
-fun KSAnnotated.extraCommand(): Boolean = hasAnnotation("NativeCommand")
-
-fun KSAnnotated.extraEvent(): Boolean = hasAnnotation("NativeEvent")
-
-fun KSAnnotated.extraMessage(): Boolean = extraCommand() || extraEvent()
-
-fun KSClassDeclaration.extraMessageId(): Int {
-    // ID is always stable, because it relies on hashcode of full class name
-    return qualifiedName!!.asString().hashCode() and 0x7FFFFFFF
-}
-
-fun KSAnnotated.extraFixedSize(): Int? = findAnnotationInt("ExtraFixedSize")
+fun KSAnnotated.extraFixedSize(): Int? = findAnnotation("ExtraFixedSize", "size")
 
 fun KSAnnotated.extraStringUtf16(): Boolean = hasAnnotation("ExtraStringUtf16")
 
 fun TypeName.extraStringUtf16(): Boolean = hasAnnotation("ExtraStringUtf16")
 
-private fun KSAnnotated.hasAnnotation(name: String): Boolean {
-    return annotations.any { it.shortName.asString() == name }
-}
+fun KSAnnotated.extraEntityCountPercentage(): Float = findAnnotation("ExtraComponent", "entityCountPercentage") ?: 0.2f
 
-private fun TypeName.hasAnnotation(name: String): Boolean {
-    return annotations.any { it.typeName.toString() == name }
-}
+fun KSAnnotated.extraBridgeLibName(): String = findAnnotation("ExtraBridge", "libName") ?: ""
 
-private fun KSAnnotated.findAnnotationInt(name: String): Int? {
-    return annotations
-        .find { it.shortName.asString() == name }
-        ?.arguments
-        ?.firstOrNull()
-        ?.value as? Int
-}
+fun KSAnnotated.extraBridgeTransport(): String = findAnnotation("ExtraBridge", "transport") ?: ""
 
 fun TypeName.extraFixedSize(): Int? {
     val annotation = annotations.find {
@@ -62,4 +40,20 @@ fun TypeName.extraFixedSize(): Int? {
         ?.toString()
         ?.trim()
         ?.toIntOrNull()
+}
+
+private fun KSAnnotated.hasAnnotation(name: String): Boolean {
+    return annotations.any { it.shortName.asString() == name }
+}
+
+private fun TypeName.hasAnnotation(name: String): Boolean {
+    return annotations.any { it.typeName.toString() == name }
+}
+
+private fun <T> KSAnnotated.findAnnotation(annotationName: String, argName: String): T? {
+    return annotations
+        .find { it.shortName.asString() == annotationName }
+        ?.arguments
+        ?.firstOrNull { it.name?.asString() == argName }
+        ?.value as? T
 }

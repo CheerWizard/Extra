@@ -28,7 +28,10 @@ class FileTest {
     fun testInitialStateAndLifecycle() = runTest {
         val file = File(testPath)
 
-        assertTrue(file.isOpened, "File should be automatically marked as opened on initialization")
+        assertFalse(file.isOpened, "Constructing a File should not acquire an OS resource")
+
+        file.open()
+        assertTrue(file.isOpened, "File should be marked as opened after calling open()")
 
         file.close()
         assertFalse(file.isOpened, "File should be marked as closed after calling close()")

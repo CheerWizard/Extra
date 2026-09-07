@@ -188,3 +188,74 @@ data class Float4(
     val gba get() = Float3(y, z, w)
     val rgba get() = Float4(x, y, z, w)
 }
+
+fun Float4List.add(i: Int, v: Float, out: Float4List) {
+    out.x[i] = x[i] + v
+    out.y[i] = y[i] + v
+    out.z[i] = z[i] + v
+    out.w[i] = w[i] + v
+}
+
+fun Float4List.sub(i: Int, v: Float, out: Float4List) {
+    out.x[i] = x[i] - v
+    out.y[i] = y[i] - v
+    out.z[i] = z[i] - v
+    out.w[i] = w[i] - v
+}
+
+fun Float4List.mul(i: Int, v: Float, out: Float4List) {
+    out.x[i] = x[i] * v
+    out.y[i] = y[i] * v
+    out.z[i] = z[i] * v
+    out.w[i] = w[i] * v
+}
+
+fun Float4List.div(i: Int, v: Float, out: Float4List) {
+    out.x[i] = x[i] / v
+    out.y[i] = y[i] / v
+    out.z[i] = z[i] / v
+    out.w[i] = w[i] / v
+}
+
+fun Float4List.add(i: Int, other: Float4List, out: Float4List) {
+    out.x[i] = x[i] + other.x[i]
+    out.y[i] = y[i] + other.y[i]
+    out.z[i] = z[i] + other.z[i]
+    out.w[i] = w[i] + other.w[i]
+}
+
+fun Float4List.sub(i: Int, other: Float4List, out: Float4List) {
+    out.x[i] = x[i] - other.x[i]
+    out.y[i] = y[i] - other.y[i]
+    out.z[i] = z[i] - other.z[i]
+    out.w[i] = w[i] - other.w[i]
+}
+
+fun Float4List.mul(i: Int, other: Float4List, out: Float4List) {
+    out.x[i] = x[i] * other.x[i]
+    out.y[i] = y[i] * other.y[i]
+    out.z[i] = z[i] * other.z[i]
+    out.w[i] = w[i] * other.w[i]
+}
+
+fun Float4List.div(i: Int, other: Float4List, out: Float4List) {
+    out.x[i] = x[i] / other.x[i]
+    out.y[i] = y[i] / other.y[i]
+    out.z[i] = z[i] / other.z[i]
+    out.w[i] = w[i] / other.w[i]
+}
+
+fun Float4List.neg(i: Int, out: Float4List) {
+    out.x[i] = -x[i]
+    out.y[i] = -y[i]
+    out.z[i] = -z[i]
+    out.w[i] = -w[i]
+}
+
+fun Float4List.mul(i: Int, m: com.cws.extra.math.matrices.Mat4List, out: Float4List) {
+    val vx = x[i]; val vy = y[i]; val vz = z[i]; val vw = w[i]
+    out.x[i] = m.m00[i] * vx + m.m01[i] * vy + m.m02[i] * vz + m.m03[i] * vw
+    out.y[i] = m.m10[i] * vx + m.m11[i] * vy + m.m12[i] * vz + m.m13[i] * vw
+    out.z[i] = m.m20[i] * vx + m.m21[i] * vy + m.m22[i] * vz + m.m23[i] * vw
+    out.w[i] = m.m30[i] * vx + m.m31[i] * vy + m.m32[i] * vz + m.m33[i] * vw
+}

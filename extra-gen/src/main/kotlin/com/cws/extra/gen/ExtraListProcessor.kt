@@ -15,20 +15,21 @@
  */
 package com.cws.extra.gen
 
-import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import kotlin.sequences.forEach
 
 class ExtraListProcessor(
-    private val logger: KSPLogger,
+    private val logger: ExtraLogger,
     private val fileGenerator: FileGenerator,
+    private val generateMathTypes: Boolean,
 ) {
 
     companion object {
         private const val TAG = "ExtraListProcessor"
         private const val LISTS_PACKAGE = "com.cws.extra.lists"
         private const val PACKAGE_MEMORY = "com.cws.extra.memory"
+        private const val MATH_PACKAGE_PREFIX = "com.cws.extra.math."
     }
 
     private val primitiveLists = mapOf(
@@ -41,13 +42,13 @@ class ExtraListProcessor(
         "Short" to "ShortList",
         "UShort" to "UShortList",
         "Byte" to "ByteList",
-        "UByte" to "YByteList",
+        "UByte" to "UByteList",
         "Boolean" to "BooleanList",
         "Char" to "CharList",
     )
 
     fun process(resolver: Resolver) {
-        logger.info("$TAG: Scanning for @ExtraList...")
+        logger.i(TAG) { "Scanning for @ExtraList..." }
 
         resolver
             .getSymbolsWithAnnotation("$PACKAGE_MEMORY.ExtraList")
@@ -56,13 +57,14 @@ class ExtraListProcessor(
                 declaration.annotations.any { it.shortName.asString() == "ExtraList" }
             }
             .forEach { declaration ->
-                logger.info("$TAG: Generate from $declaration")
+                logger.i(TAG) { "Generate from $declaration" }
                 generateForExtraList(declaration)
             }
     }
 
     private fun generateForExtraList(declaration: KSClassDeclaration) {
         val packageName = declaration.packageName.asString()
+        if (!generateMathTypes && packageName.startsWith(MATH_PACKAGE_PREFIX)) return
         val className = declaration.qualifiedName()
         val name = className.simpleName
         if (fileGenerator.contains(name)) return
@@ -76,7 +78,7 @@ class ExtraListProcessor(
         fileGenerator.generateFile(packageName, "${name}List", file)
     }
 
-    private fun getNativeListImport(field: Field): String {
+    private fun getExtraListImport(field: Field): String {
         return when {
             primitiveLists.contains(field.type) -> "import $LISTS_PACKAGE.${field.type}List"
             field.type.isCollection ||
@@ -86,7 +88,7 @@ class ExtraListProcessor(
         }
     }
 
-    private fun getNativeListType(field: Field): String {
+    private fun getExtraListType(field: Field): String {
         return when {
             primitiveLists.contains(field.type) -> primitiveLists[field.type].orEmpty()
             field.type.isCollection -> "GenericList<${field.type}?>"
@@ -104,77 +106,69 @@ class ExtraListProcessor(
         val firstField = fields.firstOrNull() ?: return ""
 
         val imports = fields.map {
-            getNativeListImport(it)
+            getExtraListImport(it)
         }.toSet().joinToString("\n") +
-                "\nimport com.cws.extra.memory.ExtraData\n" +
-                "\nimport com.cws.extra.memory.IExtraList\n" +
-                "\nimport kotlin.random.Random\n"
+                "\nimport com.cws.extra.memory.ExtraDataSoA" +
+                "\nimport com.cws.extra.memory.IExtraList" +
+                "\nimport kotlin.random.Random" +
+                "\nimport kotlinx.serialization.Serializable\n"
 
-        val constructorArgs = fields.joinToString("\n") {
-            val type = getNativeListType(it)
-            "   val ${it.name}: $type = ${type}(capacity),"
+        val args = fields.joinToString("\n") {
+            val type = getExtraListType(it)
+            "   ${it.name} = ${type}(capacity),"
         }
 
-        val secondConstructor = buildString {
-            appendLine()
-            append("    constructor(")
-            appendLine()
-            fields.forEach { field ->
-                appendLine("        ${field.name}: ${getNativeListType(field)},")
-            }
-            appendLine("        capacity: Int,")
-            append("    ) : this(capacity, ")
-            fields.forEachIndexed { i, field ->
-                append(field.name)
-                if (i != fields.lastIndex) {
-                    append(", ")
-                }
-            }
-            appendLine(")")
+        val constructorArgs = fields.joinToString("\n") {
+            val type = getExtraListType(it)
+            "   val ${it.name}: $type,"
         }
 
         val reserveBody = fields.joinToString("\n") {
-            "        ${it.name}.reserve(capacity)"
+            "   ${it.name}.reserve(capacity)"
+        }
+
+        val resizeBody = fields.joinToString("\n") {
+            "   ${it.name}.resize(newSize)"
         }
 
         val ensureCapacityBody = fields.joinToString("\n") {
-            "        ${it.name}.ensureCapacity(newCapacity)"
+            "   ${it.name}.ensureCapacity(newCapacity)"
         }
 
         val trimBody = fields.joinToString("\n") {
-            "        ${it.name}.trimToSize()"
+            "   ${it.name}.trimToSize()"
         }
 
         val clearBody = fields.joinToString("\n") {
-            "        ${it.name}.clear()"
+            "   ${it.name}.clear()"
         }
 
         val setBody = fields.joinToString("\n") {
-            "        ${it.name}[i] = value.${it.name}"
+            "   ${it.name}[i] = value.${it.name}"
         }
 
         val addBody = fields.joinToString("\n") {
-            "        ${it.name}.add(value.${it.name})"
+            "   ${it.name}.add(value.${it.name})"
         }
 
         val addAllBody = fields.joinToString("\n") {
-            "        ${it.name}.addAll(values.${it.name})"
+            "   ${it.name}.addAll(values.${it.name})"
         }
 
         val removeSwapBody = fields.joinToString("\n") {
-            "        ${it.name}.removeAtSwap(index)"
+            "   ${it.name}.removeAtSwap(index)"
         }
 
         val cloneArgs = fields.joinToString(",\n") {
-            "            ${it.name}.clone()"
+            "   ${it.name}.clone()"
         }
 
         val shuffleBody = fields.joinToString("\n") {
-            "            ${it.name}.shuffle(random)"
+            "   ${it.name}.shuffle(random)"
         }
 
         val addFromSetBody = fields.joinToString("\n") {
-            "        ${it.name}.addFrom(source.${it.name}, index)"
+            "   ${it.name}.addFrom(source.${it.name}, index)"
         }
 
         return "" +
@@ -182,14 +176,12 @@ class ExtraListProcessor(
                 "\n" +
                 imports +
                 "\n" +
-                "\n@ExtraData\n" +
-                "class ${type}List(\n" +
-                "    capacity: Int,\n" +
+                "fun ${type}List(capacity: Int) = ${type}List(\n${args}\n)" +
+                "\n" +
+                "\n@ExtraDataSoA\n" +
+                "data class ${type}List(\n" +
                 "    $constructorArgs\n" +
                 "): IExtraList {\n" +
-
-                "\n" +
-                secondConstructor +
 
                 "\n" +
                 "    val capacity: Int get() = ${firstField.name}.capacity\n" +
@@ -217,22 +209,22 @@ class ExtraListProcessor(
 
                 "\n" +
                 "    fun clear() {\n" +
-                "        $clearBody\n" +
+                "    $clearBody\n" +
                 "    }\n" +
 
                 "\n" +
                 "    operator fun set(i: Int, value: $type) {\n" +
-                "        $setBody\n" +
+                "    $setBody\n" +
                 "    }\n" +
 
                 "\n" +
                 "    fun add(value: $type) {\n" +
-                "        $addBody\n" +
+                "    $addBody\n" +
                 "    }\n" +
 
                 "\n" +
                 "    fun addAll(values: ${type}List) {\n" +
-                "        $addAllBody\n" +
+                "    $addAllBody\n" +
                 "    }\n" +
 
                 "\n" +
@@ -258,6 +250,11 @@ class ExtraListProcessor(
                 "    }\n" +
 
                 "\n" +
+                "    fun resize(newSize: Int) {\n" +
+                "        $resizeBody\n" +
+                "    }\n" +
+
+                "\n" +
                 "    fun ensureCapacity(newCapacity: Int) {\n" +
                 "        $ensureCapacityBody\n" +
                 "    }\n" +
@@ -269,7 +266,7 @@ class ExtraListProcessor(
 
                 "\n" +
                 "    fun clone(): ${type}List {\n" +
-                "        val copy = ${type}List(capacity, $cloneArgs)\n" +
+                "        val copy = ${type}List($cloneArgs)\n" +
                 "        return copy\n" +
                 "    }\n" +
 

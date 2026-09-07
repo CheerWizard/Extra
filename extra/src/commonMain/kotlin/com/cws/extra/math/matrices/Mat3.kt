@@ -18,6 +18,7 @@ package com.cws.extra.math.matrices
 import com.cws.extra.math.operators.inverse
 import com.cws.extra.math.operators.transpose
 import com.cws.extra.math.vectors.Float3
+import com.cws.extra.memory.ExtraData
 import com.cws.extra.memory.MemoryLayout
 import com.cws.extra.memory.ExtraList
 import com.cws.extra.memory.sizeBytes
@@ -27,6 +28,7 @@ fun Mat3.sizeBytes(layout: MemoryLayout) = 9 * Float.sizeBytes(layout)
 fun Mat3.sizeBytesPacked(layout: MemoryLayout) = 9 * Float.sizeBytes(layout)
 
 @Serializable
+@ExtraData
 @ExtraList
 data class Mat3(
     var m00: Float = 1f,

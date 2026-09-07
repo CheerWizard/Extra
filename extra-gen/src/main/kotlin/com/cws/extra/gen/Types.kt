@@ -22,7 +22,16 @@ val primitiveTypes = setOf(
     "Float", "Double",
 )
 
+val primitiveListTypes = setOf(
+    "BooleanList", "ByteList", "UByteList",
+    "ShortList", "CharList", "UShortList",
+    "IntList", "LongList", "UIntList", "ULongList",
+    "FloatList", "DoubleList",
+)
+
 val matrices = setOf("Mat2", "Mat3", "Mat4")
+
+val matricesList = setOf("Mat2List", "Mat3List", "Mat4List")
 
 val variableLengthTypes = setOf(
     "ByteArray", "UByteArray", "BooleanArray",
@@ -30,6 +39,39 @@ val variableLengthTypes = setOf(
     "IntArray", "LongArray", "UIntArray", "ULongArray",
     "FloatArray", "DoubleArray",
     "String",
+)
+
+val kotlinToCppTypes = mapOf(
+    "Boolean" to "bool",
+    "Byte" to "int8_t",
+    "Short" to "int16_t",
+    "Char" to "uint16_t",
+    "Int" to "int32_t",
+    "Long" to "int64_t",
+    "Float" to "float",
+    "Double" to "double",
+)
+
+val kotlinToJniTypes = mapOf(
+    "Boolean" to "jboolean",
+    "Byte" to "jbyte",
+    "Short" to "jshort",
+    "Char" to "jchar",
+    "Int" to "jint",
+    "Long" to "jlong",
+    "Float" to "jfloat",
+    "Double" to "jdouble",
+    "ByteArray" to "jbyteArray",
+    "BooleanArray" to "jbooleanArray",
+    "ShortArray" to "jshortArray",
+    "CharArray" to "jcharArray",
+    "IntArray" to "jintArray",
+    "LongArray" to "jlongArray",
+    "FloatArray" to "jfloatArray",
+    "DoubleArray" to "jdoubleArray",
+    "String" to "jstring",
+    "Unit" to "void",
+    "Any" to "jobject"
 )
 
 val String.isVariableLength get() = this in variableLengthTypes
@@ -42,12 +84,19 @@ val String.isMatrix get() = this in matrices
 
 val Field.isMatrix get() = type.isMatrix
 
+val String.isMatrixList get() = this in matrices
+
+val Field.isMatrixList get() = type.isMatrixList
+
 val String.isPrimitive get() = this in primitiveTypes
 val Field.isPrimitive get() = type.isPrimitive
 
-val Field.isDynamic get() = (fixedSize == null) && isVariableLength
+val String.isPrimitiveList get() = this in primitiveListTypes
+val Field.isPrimitiveList get() = type.isPrimitiveList
 
 val Field.isNested get() = !isPrimitive && !isVariableLength
+val String.isNested get() = !isPrimitive && !isVariableLength
+
 val String.isArray get() = this == "Array"
 val Field.isArray get() = type.isArray
 

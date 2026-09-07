@@ -15,12 +15,45 @@
  */
 package com.cws.extra.math.operators
 
-import com.cws.extra.math.vectors.Float2
-import com.cws.extra.math.vectors.Float3
-import com.cws.extra.math.vectors.Float4
+import com.cws.extra.math.vectors.*
+import kotlin.math.sqrt as ksqrt
 
-fun length(v: Float2) = kotlin.math.sqrt(v.x * v.x + v.y * v.y)
+fun length(v: Float2) = ksqrt(v.x * v.x + v.y * v.y)
 
-fun length(v: Float3) = kotlin.math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+fun length(l: Float2List, i: Int) = ksqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i])
 
-fun length(v: Float4) = kotlin.math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w)
+fun length(l: Int2List, i: Int) = sqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i])
+
+fun length(l: UInt2List, i: Int) = sqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i])
+
+fun length(v: Float3) = ksqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+
+fun length(l: Float3List, i: Int) = ksqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i])
+
+fun length(l: Int3List, i: Int) = sqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i])
+
+fun length(l: UInt3List, i: Int) = sqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i])
+
+fun length(v: Float4) = ksqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w)
+
+fun length(l: Float4List, i: Int) = ksqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i] + l.w[i] * l.w[i])
+
+fun length(l: Int4List, i: Int) = sqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i] + l.w[i] * l.w[i])
+
+fun length(l: UInt4List, i: Int) = sqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i] + l.w[i] * l.w[i])
+
+fun length(l: QuaternionList, i: Int) = ksqrt(l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i] + l.w[i] * l.w[i])
+
+fun lengthSquared(v: Float2) = v.x * v.x + v.y * v.y
+
+fun lengthSquared(l: Float2List, i: Int) = l.x[i] * l.x[i] + l.y[i] * l.y[i]
+
+fun lengthSquared(v: Float3) = v.x * v.x + v.y * v.y + v.z * v.z
+
+fun lengthSquared(l: Float3List, i: Int) = l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i]
+
+fun lengthSquared(v: Float4) = v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w
+
+fun lengthSquared(l: Float4List, i: Int) = l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i] + l.w[i] * l.w[i]
+
+fun lengthSquared(l: QuaternionList, i: Int) = l.x[i] * l.x[i] + l.y[i] * l.y[i] + l.z[i] * l.z[i] + l.w[i] * l.w[i]

@@ -17,7 +17,6 @@ package com.cws.extra.gen
 
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
-import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
@@ -40,67 +39,129 @@ class ExtraProcessor(
     companion object {
         private const val TAG = "ExtraProcessor"
         private const val FUNCTION_SUFFIX_GPU = "Gpu"
+
+        // Release sources for the Extra module include their generated companions. Disable this
+        // only while intentionally refreshing those checked-in files.
+        private const val FREEZE_VERSION = true
+
+        private const val PROJECT_NAME = "extra"
+        const val PACKAGE_CORE = "com.cws.extra"
+        private const val PACKAGE_MEMORY = "com.cws.extra.memory"
     }
 
     private val generator: CodeGenerator = environment.codeGenerator
-    private val logger: KSPLogger = environment.logger
+    private val projectName = environment.options["project_name"].orEmpty()
+    private val projectPath = environment.options["project_path"].orEmpty()
+    private val logLevel = environment.options["log_level"].toExtraLogLevel()
+    private val logger = ExtraLogger(environment.logger, logLevel)
 
-    private val packageMemory = "com.cws.extra.memory"
-    private val nativeBufferClass = ClassName(packageMemory, "NativeBuffer")
-    private val memoryLayoutClass = ClassName(packageMemory, "MemoryLayout")
-    private val endianClass = ClassName(packageMemory, "Endian")
-    private val memoryBoundaryClass = ClassName(packageMemory, "MemoryBoundary")
+    private val nativeBufferClass = ClassName(PACKAGE_MEMORY, "NativeBuffer")
+    private val memoryLayoutClass = ClassName(PACKAGE_MEMORY, "MemoryLayout")
+    private val endianClass = ClassName(PACKAGE_MEMORY, "Endian")
+    private val memoryBoundaryClass = ClassName(PACKAGE_MEMORY, "MemoryBoundary")
     private val byteArrayClass = ClassName("kotlin", "ByteArray")
 
     private val fileGenerator = FileGenerator(logger, generator)
+    private val fileTemplateManager = FileTemplateManager(logger)
 
-    private val extraListProcessor = ExtraListProcessor(logger, fileGenerator)
-    private val extraComponentStorageProcessor = ExtraComponentStorageProcessor(logger, fileGenerator)
+    private val extraListProcessor = ExtraListProcessor(
+        logger = logger,
+        fileGenerator = fileGenerator,
+        generateMathTypes = !FREEZE_VERSION,
+    )
+    private val extraComponentStorageProcessor = ExtraComponentStorageProcessor(logger, fileGenerator, fileTemplateManager)
+
+    private val cppProcessor = ExtraCppProcessor(environment, logger, fileTemplateManager, projectPath)
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        extraComponentStorageProcessor.process(resolver)
+        if (FREEZE_VERSION && projectName == PROJECT_NAME) {
+            logger.i(TAG) { "Skipping code generation for frozen project '$projectName'" }
+            return emptyList()
+        }
+        extraComponentStorageProcessor.process(resolver, projectName)
         extraListProcessor.process(resolver)
+        scanExtraBridge(resolver)
+        scanExtraBridgeData(resolver)
+        scanExtraBridgeDataSoA(resolver)
+        scanExtraBridgeEnum(resolver)
         scanExtraData(resolver)
+        scanExtraDataSoA(resolver)
         scanExtraEnum(resolver)
-
-        // ATTENTION: only comment this out, when primitive lists need regeneration with new updates.
-        // primitive lists only need to be generated once and copied into com.cws.extra.lists package
-//        generatePrimitiveLists()
-
         return emptyList()
     }
 
     override fun finish() {
+        cppProcessor.generate()
+    }
+
+    private fun scanExtraBridge(resolver: Resolver) {
+        scan(resolver, "ExtraBridge") {
+            cppProcessor.collectExtraBridge(it)
+        }
     }
 
     private fun scanExtraData(resolver: Resolver) {
-        logger.info("$TAG: Scanning for @ExtraData...")
+        scan(resolver, "ExtraData") {
+            generateForExtraData(it, isSoA = false)
+            cppProcessor.collectExtraBridgeData(it)
+        }
+    }
 
+    private fun scanExtraDataSoA(resolver: Resolver) {
+        scan(resolver, "ExtraDataSoA") {
+            generateForExtraData(it, isSoA = true)
+        }
+    }
+
+    private fun scanExtraEnum(resolver: Resolver) {
+        scan(resolver, "ExtraEnum") {
+            generateForExtraEnum(it)
+            cppProcessor.collectExtraBridgeEnum(it)
+        }
+    }
+
+    private fun scanExtraBridgeData(resolver: Resolver) {
+        scan(resolver, "ExtraBridgeData") {
+            generateForExtraData(it, isSoA = false)
+            cppProcessor.collectExtraBridgeData(it)
+        }
+    }
+
+    private fun scanExtraBridgeDataSoA(resolver: Resolver) {
+        scan(resolver, "ExtraBridgeDataSoA") {
+            generateForExtraData(it, isSoA = true)
+        }
+    }
+
+    private fun scanExtraBridgeEnum(resolver: Resolver) {
+        scan(resolver, "ExtraBridgeEnum") {
+            generateForExtraEnum(it)
+            cppProcessor.collectExtraBridgeEnum(it)
+        }
+    }
+
+    private inline fun scan(resolver: Resolver, annotation: String, onEach: (declaration: KSClassDeclaration) -> Unit) {
+        logger.i(TAG) { "Scanning for @$annotation..." }
         resolver
-            .getSymbolsWithAnnotation("$packageMemory.ExtraData")
+            .getSymbolsWithAnnotation("$PACKAGE_MEMORY.$annotation")
             .filterIsInstance<KSClassDeclaration>()
             .filter { declaration ->
-                declaration.annotations.any { it.shortName.asString() == "ExtraData" }
+                declaration.annotations.any { it.shortName.asString() == annotation }
             }
             .forEach { declaration ->
-                logger.info("$TAG: Generate from $declaration")
-                generateForExtraData(declaration)
+                logger.i(TAG) { "Generate from $declaration" }
+                onEach(declaration)
             }
     }
 
-    private fun generateForExtraData(declaration: KSClassDeclaration) {
+    private fun generateForExtraData(declaration: KSClassDeclaration, isSoA: Boolean) {
         val packageName = declaration.packageName.asString()
         val className = declaration.qualifiedName()
-        val fields = declaration.createFields()
-
-        if (className.simpleName.contains("Scene")) {
-            val componentRegistry = ExtraComponentStorageProcessor.COMPONENT_REGISTRY
-            val registryPackage = ExtraComponentStorageProcessor.PACKAGE_ECS
-            val errorType = "<ERROR TYPE: $componentRegistry>"
-            val registry = fields.find { it.type.contains(componentRegistry) } ?: return
-            registry.typeName = ClassName(registryPackage, componentRegistry)
-            registry.type = registry.type.replace(errorType, componentRegistry)
-            registry.defaultValue = registry.defaultValue.replace(errorType, "${componentRegistry}(16)")
+        val fields = if (isSoA) {
+            // remove "capacity" field from SoA encoding
+            declaration.createFields().filter { it.name != "capacity" }
+        } else {
+            declaration.createFields()
         }
 
         val fileSpec = FileSpec.builder(packageName, className.simpleName)
@@ -110,47 +171,39 @@ class ExtraProcessor(
 
         fileSpec.addFunction(buildEncodeToNewBuffer(fileSpec, className, fields, ""))
         fileSpec.addFunction(buildEncodeToNewBuffer(fileSpec, className, fields, FUNCTION_SUFFIX_GPU))
-
         fileSpec.addFunction(buildEncodePackedToNewBuffer(fileSpec, className, fields))
 
-        fileSpec.addFunction(buildEncodeToBuffer(fileSpec, className, fields, ""))
-        fileSpec.addFunction(buildEncodeToBuffer(fileSpec, className, fields, FUNCTION_SUFFIX_GPU))
+        if (isSoA) {
+            fileSpec.addFunction(buildEncodeToBufferSoA(fileSpec, className, fields, ""))
+            fileSpec.addFunction(buildEncodeToBufferSoA(fileSpec, className, fields, FUNCTION_SUFFIX_GPU))
+            fileSpec.addFunction(buildEncodePackedToBufferSoA(fileSpec, className, fields))
+            fileSpec.addFunction(buildEncodeToBufferByIndex(fileSpec, className, fields, ""))
+            fileSpec.addFunction(buildEncodeToBufferByIndex(fileSpec, className, fields, FUNCTION_SUFFIX_GPU))
+            fileSpec.addFunction(buildEncodePackedToBufferByIndex(fileSpec, className, fields))
+        } else {
+            fileSpec.addFunction(buildEncodeToBuffer(fileSpec, className, fields, ""))
+            fileSpec.addFunction(buildEncodeToBuffer(fileSpec, className, fields, FUNCTION_SUFFIX_GPU))
+            fileSpec.addFunction(buildEncodePackedToBuffer(fileSpec, className, fields))
+        }
 
-        fileSpec.addFunction(buildEncodePackedToBuffer(fileSpec, className, fields))
+        if (isSoA) {
+            fileSpec.addFunction(buildDecodeFromBufferSoA(fileSpec, className, fields, ""))
+            fileSpec.addFunction(buildDecodeFromBufferSoA(fileSpec, className, fields, FUNCTION_SUFFIX_GPU))
+            fileSpec.addFunction(buildDecodeFromBufferByIndex(fileSpec, className, fields, ""))
+            fileSpec.addFunction(buildDecodeFromBufferByIndex(fileSpec, className, fields, FUNCTION_SUFFIX_GPU))
+        } else {
+            fileSpec.addFunction(buildDecodeFromBuffer(fileSpec, className, fields, ""))
+            fileSpec.addFunction(buildDecodeFromBuffer(fileSpec, className, fields, FUNCTION_SUFFIX_GPU))
+        }
 
         fileSpec.addFunction(buildDecodeFromByteArray(className))
-        fileSpec.addFunction(buildDecodeFromBuffer(fileSpec, className, fields, ""))
-        fileSpec.addFunction(buildDecodeFromBuffer(fileSpec, className, fields, FUNCTION_SUFFIX_GPU))
-
-        // generate ID constant
-        if (declaration.extraMessage()) {
-            fileSpec.addProperty(buildIdProperty(className, declaration.extraMessageId()))
-        }
 
         fileSpec.writeTo(declaration)
     }
 
-    private fun scanExtraEnum(resolver: Resolver) {
-        logger.info("$TAG: Scanning for @ExtraEnum...")
-
-        resolver
-            .getSymbolsWithAnnotation("$packageMemory.ExtraEnum")
-            .filterIsInstance<KSClassDeclaration>()
-            .filter { declaration ->
-                declaration.annotations.any { it.shortName.asString() == "ExtraEnum" }
-            }
-            .forEach { declaration ->
-                logger.info("$TAG: Generate from $declaration")
-                generateForExtraEnum(declaration)
-            }
-    }
-
     private fun generateForExtraEnum(declaration: KSClassDeclaration) {
         if (declaration.classKind != ClassKind.ENUM_CLASS) {
-            logger.error(
-                "$TAG: @ExtraEnum can only be applied to enums, but found ${declaration.classKind} '${declaration.simpleName.asString()}'",
-                declaration,
-            )
+            logger.e(TAG, declaration) { "@ExtraEnum can only be applied to enums, but found ${declaration.classKind} '${declaration.simpleName.asString()}'" }
             return
         }
 
@@ -181,7 +234,7 @@ class ExtraProcessor(
             }
             ordinalProp != null -> {
                 // no rawValue, decode ordinal field
-                logger.info("$TAG: @ExtraEnum ${className.simpleName} has no 'rawValue', falling back to ordinal encoding")
+                logger.i(TAG) { "@ExtraEnum ${className.simpleName} has no 'rawValue', falling back to ordinal encoding" }
                 val field = ordinalProp.createField(offset = "0")
                 val fields = listOf(field)
                 fileSpec.addFunction(buildSizeBytesFunction(fileSpec, className, fields))
@@ -195,22 +248,12 @@ class ExtraProcessor(
                 fileSpec.addProperty(buildEnumValueProperty(className, field, useRawValue = false))
             }
             else -> {
-                logger.error("$TAG: @ExtraEnum ${className.simpleName} has no 'rawValue' and 'ordinal'! Unable to generate it")
+                logger.e(TAG) { "@ExtraEnum ${className.simpleName} has no 'rawValue' and 'ordinal'! Unable to generate it" }
             }
         }
 
         fileSpec.writeTo(declaration)
     }
-
-    private fun buildIdProperty(className: ClassName, id: Int): PropertySpec =
-        PropertySpec.builder("ID", Int::class)
-            .receiver(className.nestedClass("Companion"))
-            .getter(
-                FunSpec.getterBuilder()
-                    .addStatement("return ${String.format("0x%04X", id)}")
-                    .build()
-            )
-            .build()
 
     private fun buildSizeBytesFunction(
         fileSpec: FileSpec.Builder,
@@ -378,7 +421,9 @@ class ExtraProcessor(
         val typeName = field.typeName
 
         if (typeName !is ParameterizedTypeName) {
-            logger.warn("$TAG: Expected ParameterizedTypeName for collection field '${field.name}' but got ${typeName::class.simpleName}")
+            logger.w(TAG) {
+                "Expected ParameterizedTypeName for collection field '${field.name}' but got ${typeName::class.simpleName}"
+            }
             return "0"
         }
 
@@ -402,7 +447,9 @@ class ExtraProcessor(
         val typeName = field.typeName
 
         if (typeName !is ParameterizedTypeName) {
-            logger.warn("$TAG: Expected ParameterizedTypeName for collection field '${field.name}' but got ${typeName::class.simpleName}")
+            logger.w(TAG) {
+                "Expected ParameterizedTypeName for collection field '${field.name}' but got ${typeName::class.simpleName}"
+            }
             return "0"
         }
 
@@ -587,6 +634,79 @@ class ExtraProcessor(
             .build()
     }
 
+    private fun buildEncodeToBufferSoA(
+        fileSpec: FileSpec.Builder,
+        className: ClassName,
+        fields: List<Field>,
+        functionSuffix: String,
+    ): FunSpec {
+        return FunSpec.builder("encode$functionSuffix")
+            .receiver(className.copy(nullable = true))
+            .addParameter("buffer", nativeBufferClass)
+            .addStatement("if (this == null) return")
+            .addStatement("buffer.pushInt(size)")
+            .addStatement("for (i in 0 until size) {")
+            .apply {
+                fields.forEach { _ ->
+                    addStatement("     encode$functionSuffix(i, buffer)")
+                }
+            }
+            .addStatement("}")
+            .build()
+    }
+
+    private fun buildEncodeToBufferByIndex(
+        fileSpec: FileSpec.Builder,
+        className: ClassName,
+        fields: List<Field>,
+        functionSuffix: String,
+    ): FunSpec {
+        return FunSpec.builder("encode$functionSuffix")
+            .receiver(className.copy(nullable = true))
+            .addParameter("i", INT)
+            .addParameter("buffer", nativeBufferClass)
+            .addStatement("if (this == null) return")
+            .apply {
+                fields.forEach { field ->
+                    when {
+                        field.isPrimitiveList -> addStatement("buffer.push${field.type.removeSuffix("List")}(${field.name}[i])")
+
+                        field.isMatrixList -> {
+                            val majorSuffix = if (functionSuffix == FUNCTION_SUFFIX_GPU) {
+                                "ColumnMajor"
+                            } else {
+                                "RowMajor"
+                            }
+                            addStatement("buffer.push${field.type.removeSuffix("List")}$majorSuffix(${field.name})")
+                        }
+
+                        field.isListCollection -> {
+                            val parameterized = field.typeName as? ParameterizedTypeName
+                                ?: error("Collection field '${field.name}' typeName is not ParameterizedTypeName: ${field.typeName::class.simpleName}")
+                            val elementType = parameterized.typeArguments.firstOrNull()
+                                ?: error("Collection field '${field.name}' has no type argument")
+                            val encodeElement = encodeExprFor(elementType, "buffer", fileSpec, functionSuffix)
+
+                            when {
+                                field.isArray -> addStatement("buffer.pushArray(i, ${field.name}) { $encodeElement }")
+                                field.isList -> addStatement("buffer.pushList(i, ${field.name}) { $encodeElement }")
+                                field.isGenericList -> addStatement("buffer.pushGenericList(i, ${field.name}) { $encodeElement }")
+                            }
+                        }
+
+                        field.isNested -> {
+                            val fieldClassName = field.typeName as? ClassName
+                            if (fieldClassName != null) {
+                                fileSpec.addImport(fieldClassName.packageName, "encode$functionSuffix")
+                            }
+                            addStatement("${field.name}.encode$functionSuffix(i, buffer)")
+                        }
+                    }
+                }
+            }
+            .build()
+    }
+
     private fun buildEncodePackedToBuffer(
         fileSpec: FileSpec.Builder,
         className: ClassName,
@@ -652,6 +772,78 @@ class ExtraProcessor(
                             val fieldClassName = field.typeName as ClassName
                             fileSpec.addImport(fieldClassName.packageName, "encodePacked")
                             addStatement("${field.name}.encodePacked(buffer)")
+                        }
+                    }
+                }
+            }
+            .build()
+    }
+
+    private fun buildEncodePackedToBufferSoA(
+        fileSpec: FileSpec.Builder,
+        className: ClassName,
+        fields: List<Field>,
+    ): FunSpec {
+        val functionSuffix = FUNCTION_SUFFIX_GPU // For now "packed encoding" encodes matrices as column-major
+        return FunSpec.builder("encodePacked")
+            .receiver(className.copy(nullable = true))
+            .addParameter("buffer", nativeBufferClass)
+            .addStatement("if (this == null) return")
+            .addStatement("buffer.pushInt(size)")
+            .addStatement("for (i in 0 until size) {")
+            .apply {
+                fields.forEach { _ ->
+                    addStatement("     encodePacked(i, buffer)")
+                }
+            }
+            .addStatement("}")
+            .build()
+    }
+
+    private fun buildEncodePackedToBufferByIndex(
+        fileSpec: FileSpec.Builder,
+        className: ClassName,
+        fields: List<Field>,
+    ): FunSpec {
+        val functionSuffix = FUNCTION_SUFFIX_GPU // For now "packed encoding" encodes matrices as column-major
+        return FunSpec.builder("encodePacked")
+            .receiver(className.copy(nullable = false))
+            .addParameter("i", INT)
+            .addParameter("buffer", nativeBufferClass)
+            .apply {
+                fields.forEach { field ->
+                    when {
+                        field.isPrimitiveList -> addStatement("buffer.push${field.type.removeSuffix("List")}(${field.name}[i])")
+
+                        field.isMatrixList -> {
+                            val majorSuffix = if (functionSuffix == FUNCTION_SUFFIX_GPU) {
+                                "ColumnMajor"
+                            } else {
+                                "RowMajor"
+                            }
+                            addStatement("buffer.push${field.type.removeSuffix("List")}$majorSuffix(i, ${field.name})")
+                        }
+
+                        field.isListCollection -> {
+                            val parameterized = field.typeName as? ParameterizedTypeName
+                                ?: error("Collection field '${field.name}' typeName is not ParameterizedTypeName: ${field.typeName::class.simpleName}")
+                            val elementType = parameterized.typeArguments.firstOrNull()
+                                ?: error("Collection field '${field.name}' has no type argument")
+                            val encodeElement = encodeExprFor(elementType, "buffer", fileSpec, functionSuffix)
+
+                            when {
+                                field.isArray -> addStatement("buffer.pushPackedArray(i, ${field.name}) { $encodeElement }")
+                                field.isList -> addStatement("buffer.pushPackedList(i, ${field.name}) { $encodeElement }")
+                                field.isGenericList -> addStatement("buffer.pushPackedGenericList(i, ${field.name}) { $encodeElement }")
+                            }
+                        }
+
+                        field.isNested -> {
+                            val fieldClassName = field.typeName as? ClassName
+                            if (fieldClassName != null) {
+                                fileSpec.addImport(fieldClassName.packageName, "encodePacked")
+                            }
+                            addStatement("${field.name}.encodePacked(i, buffer)")
                         }
                     }
                 }
@@ -762,6 +954,63 @@ class ExtraProcessor(
                     }
                 }
                 addCode(")\n")
+            }
+            .build()
+    }
+
+    private fun buildDecodeFromBufferSoA(
+        fileSpec: FileSpec.Builder,
+        className: ClassName,
+        fields: List<Field>,
+        functionSuffix: String,
+    ): FunSpec {
+        return FunSpec.builder("decode$functionSuffix${className.simpleName}")
+            .receiver(nativeBufferClass)
+            .returns(className)
+            .apply {
+                addStatement("val decodedSize = nextInt()")
+                addStatement("val buffer = this")
+                addCode("return %T(decodedSize).apply {", className)
+                addStatement("  \nfor (i in 0 until decodedSize) {")
+                fields.forEach { _ ->
+                    addStatement("      decode(i, buffer)")
+                }
+                addStatement("  }")
+                addStatement("}")
+            }
+            .build()
+    }
+
+    private fun buildDecodeFromBufferByIndex(
+        fileSpec: FileSpec.Builder,
+        className: ClassName,
+        fields: List<Field>,
+        functionSuffix: String,
+    ): FunSpec {
+        return FunSpec.builder("decode$functionSuffix")
+            .receiver(className)
+            .addParameter("i", INT)
+            .addParameter("buffer", nativeBufferClass)
+            .apply {
+                fields.forEach { field ->
+                    when {
+                        field.isListCollection -> {
+                            val parameterized = field.typeName as? ParameterizedTypeName
+                                ?: error("Collection field '${field.name}' typeName is not ParameterizedTypeName: ${field.typeName::class.simpleName}")
+                            val elementType = parameterized.typeArguments.firstOrNull()
+                                ?: error("Collection field '${field.name}' has no type argument")
+                            val decodeElement = decodeExprFor(elementType, "buffer", fileSpec, functionSuffix)
+                            addStatement("  ${field.name}[i].let { $decodeElement }")
+                        }
+                        else -> {
+                            val fieldClassName = field.typeName as? ClassName
+                            if (field.isNested && fieldClassName != null) {
+                                fileSpec.addImport(fieldClassName.packageName, "decode$functionSuffix")
+                            }
+                            addStatement("  ${field.name}.decode$functionSuffix(i, buffer)")
+                        }
+                    }
+                }
             }
             .build()
     }
@@ -997,7 +1246,7 @@ class ExtraProcessor(
     private fun generatePrimitiveList(pkg: String, type: String, default: String) {
         if (fileGenerator.contains("${type}List")) return
 
-        val code = fileGenerator.readTemplate("PrimitiveList")
+        val code = fileTemplateManager.read("PrimitiveList.txt")
             .replace("#pkg", pkg)
             .replace("#T", type)
             .replace("#DEFAULT_VALUE", default)

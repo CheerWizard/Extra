@@ -35,3 +35,7 @@ rootProject.name = "Extra"
 
 include(":extra")
 include(":extra-gen")
+include(":extra-http")
+include(":extra-client")
+include(":extra-server")
+include(":benchmarks")

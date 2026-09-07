@@ -159,7 +159,7 @@ suspend fun File.flush(): File {
 
 suspend fun File.map(offset: Int = 0, size: Int = this.size): NativeBuffer? {
     if (!isOpened || this.size <= 0 || offset < 0 || size <= 0 || mapped != null) return null
-    return mapImpl()
+    return mapImpl(offset, size)
 }
 
 suspend fun File.unmap(): File {

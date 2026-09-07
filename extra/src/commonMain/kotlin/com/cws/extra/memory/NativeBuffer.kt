@@ -17,8 +17,11 @@ package com.cws.extra.memory
 
 import com.cws.extra.lists.GenericList
 import com.cws.extra.math.matrices.Mat2
+import com.cws.extra.math.matrices.Mat2List
 import com.cws.extra.math.matrices.Mat3
+import com.cws.extra.math.matrices.Mat3List
 import com.cws.extra.math.matrices.Mat4
+import com.cws.extra.math.matrices.Mat4List
 
 @ExtraEnum
 enum class Endian {
@@ -179,6 +182,20 @@ expect class NativeBuffer(
     )
 
     fun getByte(index: Int): Byte
+}
+
+internal fun NativeBuffer.requireCopyBounds(
+    dest: NativeBuffer,
+    srcIndex: Int,
+    destIndex: Int,
+    sizeBytes: Int,
+) {
+    require(srcIndex >= 0 && destIndex >= 0 && sizeBytes >= 0) { "Copy indices and size must be non-negative" }
+    if (srcIndex > limit - sizeBytes || destIndex > dest.limit - sizeBytes) {
+        throw IndexOutOfBoundsException(
+            "Copy range src=[$srcIndex, ${srcIndex + sizeBytes}), dest=[$destIndex, ${destIndex + sizeBytes})",
+        )
+    }
 }
 
 fun NativeBuffer.clear(): NativeBuffer {
@@ -1136,6 +1153,22 @@ fun NativeBuffer.pushMat2ColumnMajor(value: Mat2) {
     pushFloat(value.m11)
 }
 
+fun NativeBuffer.pushMat2RowMajor(i: Int, value: Mat2List) {
+    pushFloat(value.m00[i])
+    pushFloat(value.m01[i])
+
+    pushFloat(value.m10[i])
+    pushFloat(value.m11[i])
+}
+
+fun NativeBuffer.pushMat2ColumnMajor(i: Int, value: Mat2List) {
+    pushFloat(value.m00[i])
+    pushFloat(value.m10[i])
+
+    pushFloat(value.m01[i])
+    pushFloat(value.m11[i])
+}
+
 fun NativeBuffer.pushMat3RowMajor(value: Mat3) {
     pushFloat(value.m00)
     pushFloat(value.m01)
@@ -1162,6 +1195,34 @@ fun NativeBuffer.pushMat3ColumnMajor(value: Mat3) {
     pushFloat(value.m02)
     pushFloat(value.m12)
     pushFloat(value.m22)
+}
+
+fun NativeBuffer.pushMat3RowMajor(i: Int, value: Mat3List) {
+    pushFloat(value.m00[i])
+    pushFloat(value.m01[i])
+    pushFloat(value.m02[i])
+
+    pushFloat(value.m10[i])
+    pushFloat(value.m11[i])
+    pushFloat(value.m12[i])
+
+    pushFloat(value.m20[i])
+    pushFloat(value.m21[i])
+    pushFloat(value.m22[i])
+}
+
+fun NativeBuffer.pushMat3ColumnMajor(i: Int, value: Mat3List) {
+    pushFloat(value.m00[i])
+    pushFloat(value.m10[i])
+    pushFloat(value.m20[i])
+
+    pushFloat(value.m01[i])
+    pushFloat(value.m11[i])
+    pushFloat(value.m21[i])
+
+    pushFloat(value.m02[i])
+    pushFloat(value.m12[i])
+    pushFloat(value.m22[i])
 }
 
 fun NativeBuffer.pushMat4RowMajor(value: Mat4) {
@@ -1208,6 +1269,50 @@ fun NativeBuffer.pushMat4ColumnMajor(value: Mat4) {
     pushFloat(value.m33)
 }
 
+fun NativeBuffer.pushMat4RowMajor(i: Int, value: Mat4List) {
+    pushFloat(value.m00[i])
+    pushFloat(value.m01[i])
+    pushFloat(value.m02[i])
+    pushFloat(value.m03[i])
+
+    pushFloat(value.m10[i])
+    pushFloat(value.m11[i])
+    pushFloat(value.m12[i])
+    pushFloat(value.m13[i])
+
+    pushFloat(value.m20[i])
+    pushFloat(value.m21[i])
+    pushFloat(value.m22[i])
+    pushFloat(value.m23[i])
+
+    pushFloat(value.m30[i])
+    pushFloat(value.m31[i])
+    pushFloat(value.m32[i])
+    pushFloat(value.m33[i])
+}
+
+fun NativeBuffer.pushMat4ColumnMajor(i: Int, value: Mat4List) {
+    pushFloat(value.m00[i])
+    pushFloat(value.m10[i])
+    pushFloat(value.m20[i])
+    pushFloat(value.m30[i])
+
+    pushFloat(value.m01[i])
+    pushFloat(value.m11[i])
+    pushFloat(value.m21[i])
+    pushFloat(value.m31[i])
+
+    pushFloat(value.m02[i])
+    pushFloat(value.m12[i])
+    pushFloat(value.m22[i])
+    pushFloat(value.m32[i])
+
+    pushFloat(value.m03[i])
+    pushFloat(value.m13[i])
+    pushFloat(value.m23[i])
+    pushFloat(value.m33[i])
+}
+
 inline fun <T> NativeBuffer.pushCollection(
     items: Collection<T>,
     encode: (T) -> Unit,
@@ -1246,6 +1351,78 @@ inline fun <K, V> NativeBuffer.pushPackedMap(
     }
 }
 
+inline fun <T> NativeBuffer.pushArray(
+    items: Array<T>,
+    encode: (T) -> Unit,
+) {
+    pushInt(items.size)
+    items.forEach { encode(it) }
+}
+
+inline fun <T> NativeBuffer.pushPackedArray(
+    items: Array<T>,
+    encode: (T) -> Unit,
+) {
+    items.forEach { encode(it) }
+}
+
+inline fun <T> NativeBuffer.pushArray(
+    i: Int,
+    items: Array<T>,
+    encode: (T) -> Unit,
+) {
+    if (i == 0) {
+        pushInt(items.size)
+    }
+    encode(items[i])
+}
+
+inline fun <T> NativeBuffer.pushPackedArray(
+    i: Int,
+    items: Array<T>,
+    encode: (T) -> Unit,
+) {
+    encode(items[i])
+}
+
+inline fun <T> NativeBuffer.pushList(
+    i: Int,
+    items: List<T>,
+    encode: (T) -> Unit,
+) {
+    if (i == 0) {
+        pushInt(items.size)
+    }
+    encode(items[i])
+}
+
+inline fun <T> NativeBuffer.pushPackedList(
+    i: Int,
+    items: List<T>,
+    encode: (T) -> Unit,
+) {
+    encode(items[i])
+}
+
+inline fun <T> NativeBuffer.pushGenericList(
+    i: Int,
+    items: GenericList<T>,
+    encode: (T) -> Unit,
+) {
+    if (i == 0) {
+        pushInt(items.size)
+    }
+    encode(items[i])
+}
+
+inline fun <T> NativeBuffer.pushPackedGenericList(
+    i: Int,
+    items: GenericList<T>,
+    encode: (T) -> Unit,
+) {
+    encode(items[i])
+}
+
 fun NativeBuffer.pushNativeBuffer(nativeBuffer: NativeBuffer) {
     nativeBuffer.flip()
     val size = nativeBuffer.limit
@@ -1270,7 +1447,7 @@ fun NativeBuffer.nextNativeBuffer(): NativeBuffer {
     return decoded
 }
 
-internal fun NativeBuffer.packShort(
+internal inline fun NativeBuffer.packShort(
     index: Int,
     value: Short,
 ) {
@@ -1288,7 +1465,7 @@ internal fun NativeBuffer.packShort(
     }
 }
 
-internal fun NativeBuffer.unpackShort(index: Int): Short {
+internal inline fun NativeBuffer.unpackShort(index: Int): Short {
     assertLimit(index)
     val b0 = getByte(index).toInt() and 0xFF
     val b1 = getByte(index + 1).toInt() and 0xFF
@@ -1298,14 +1475,14 @@ internal fun NativeBuffer.unpackShort(index: Int): Short {
     }
 }
 
-internal fun NativeBuffer.packUShort(
+internal inline fun NativeBuffer.packUShort(
     index: Int,
     value: UShort,
 ) = packShort(index, value.toShort())
 
-internal fun NativeBuffer.unpackUShort(index: Int) = unpackShort(index).toUShort()
+internal inline fun NativeBuffer.unpackUShort(index: Int) = unpackShort(index).toUShort()
 
-internal fun NativeBuffer.packChar(
+internal inline fun NativeBuffer.packChar(
     index: Int,
     value: Char,
 ) {
@@ -1323,7 +1500,7 @@ internal fun NativeBuffer.packChar(
     }
 }
 
-internal fun NativeBuffer.unpackChar(index: Int): Char {
+internal inline fun NativeBuffer.unpackChar(index: Int): Char {
     assertLimit(index)
     val b0 = getByte(index).toInt() and 0xFF
     val b1 = getByte(index + 1).toInt() and 0xFF
@@ -1333,7 +1510,7 @@ internal fun NativeBuffer.unpackChar(index: Int): Char {
     }
 }
 
-internal fun NativeBuffer.packInt(
+internal inline fun NativeBuffer.packInt(
     index: Int,
     value: Int,
 ) {
@@ -1351,7 +1528,7 @@ internal fun NativeBuffer.packInt(
     }
 }
 
-internal fun NativeBuffer.unpackInt(index: Int): Int {
+internal inline fun NativeBuffer.unpackInt(index: Int): Int {
     assertLimit(index)
     val low = getShort(index).toInt() and 0xFFFF
     val high = getShort(index + 2).toInt() and 0xFFFF
@@ -1361,14 +1538,14 @@ internal fun NativeBuffer.unpackInt(index: Int): Int {
     }
 }
 
-internal fun NativeBuffer.packUInt(
+internal inline fun NativeBuffer.packUInt(
     index: Int,
     value: UInt,
 ) = packInt(index, value.toInt())
 
-internal fun NativeBuffer.unpackUInt(index: Int) = unpackInt(index).toUInt()
+internal inline fun NativeBuffer.unpackUInt(index: Int) = unpackInt(index).toUInt()
 
-internal fun NativeBuffer.packLong(
+internal inline fun NativeBuffer.packLong(
     index: Int,
     value: Long,
 ) {
@@ -1386,7 +1563,7 @@ internal fun NativeBuffer.packLong(
     }
 }
 
-internal fun NativeBuffer.unpackLong(index: Int): Long {
+internal inline fun NativeBuffer.unpackLong(index: Int): Long {
     assertLimit(index)
     val low = getInt(index).toLong() and 0xFFFFFFFF
     val high = getInt(index + 4).toLong() and 0xFFFFFFFF
@@ -1396,14 +1573,14 @@ internal fun NativeBuffer.unpackLong(index: Int): Long {
     }
 }
 
-internal fun NativeBuffer.packULong(
+internal inline fun NativeBuffer.packULong(
     index: Int,
     value: ULong,
 ) = packLong(index, value.toLong())
 
-internal fun NativeBuffer.unpackULong(index: Int) = unpackLong(index).toULong()
+internal inline fun NativeBuffer.unpackULong(index: Int) = unpackLong(index).toULong()
 
-internal fun NativeBuffer.packFloat(
+internal inline fun NativeBuffer.packFloat(
     index: Int,
     value: Float,
 ) {
@@ -1422,7 +1599,7 @@ internal fun NativeBuffer.packFloat(
     }
 }
 
-internal fun NativeBuffer.unpackFloat(index: Int): Float {
+internal inline fun NativeBuffer.unpackFloat(index: Int): Float {
     assertLimit(index)
     val low = getShort(index).toInt() and 0xFFFF
     val high = getShort(index + 2).toInt() and 0xFFFF
@@ -1434,7 +1611,7 @@ internal fun NativeBuffer.unpackFloat(index: Int): Float {
     return Float.fromBits(bits)
 }
 
-internal fun NativeBuffer.packDouble(
+internal inline fun NativeBuffer.packDouble(
     index: Int,
     value: Double,
 ) {
@@ -1443,18 +1620,18 @@ internal fun NativeBuffer.packDouble(
     packLong(index, bits)
 }
 
-internal fun NativeBuffer.unpackDouble(index: Int): Double {
+internal inline fun NativeBuffer.unpackDouble(index: Int): Double {
     assertLimit(index)
     return Double.fromBits(unpackLong(index))
 }
 
-private fun NativeBuffer.assertPosition() {
+private inline fun NativeBuffer.assertPosition() {
     if (position > limit) {
         throw IndexOutOfBoundsException("NativeBuffer: Position is out of bounds! position=$position limit=$limit")
     }
 }
 
-internal fun NativeBuffer.assertLimit(i: Int) {
+internal inline fun NativeBuffer.assertLimit(i: Int) {
     if (i !in 0..<limit) {
         throw IndexOutOfBoundsException("NativeBuffer: Index is out of bounds! i=$i limit=$limit")
     }

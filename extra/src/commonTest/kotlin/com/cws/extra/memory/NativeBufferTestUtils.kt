@@ -17,14 +17,17 @@ package com.cws.extra.memory
 
 import kotlin.test.assertEquals
 
-inline fun forEachConfiguration(block: (MemoryLayout, Endian, NativeBuffer) -> Unit) {
+inline fun forEachConfiguration(
+    capacity: Int = 1024,
+    block: (MemoryLayout, Endian, NativeBuffer) -> Unit,
+) {
     for (layout in MemoryLayout.entries) {
         for (endian in Endian.entries) {
             block(
                 layout,
                 endian,
                 NativeBuffer(
-                    capacity = 1024,
+                    capacity = capacity,
                     memoryLayout = layout,
                     endian = endian,
                 ),

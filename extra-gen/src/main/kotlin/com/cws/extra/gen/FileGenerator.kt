@@ -20,16 +20,20 @@ import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 
 class FileGenerator(
-    private val logger: KSPLogger,
+    private val logger: ExtraLogger,
     private val generator: CodeGenerator,
 ) {
+
+    companion object {
+        private const val TAG = "FileGenerator"
+    }
 
     private val generatedFiles = mutableSetOf<String>()
 
     fun contains(name: String) = generatedFiles.contains(name)
 
     fun generateFile(pkg: String, name: String, code: String) {
-        logger.warn("generateFile: $pkg.$name")
+        logger.w(TAG) { "generateFile: $pkg.$name" }
         generator
             .createNewFile(Dependencies.ALL_FILES, pkg, name)
             .bufferedWriter()
@@ -37,16 +41,6 @@ class FileGenerator(
                 it.write(code)
                 generatedFiles.add(name)
             }
-    }
-
-    fun readTemplate(name: String): String {
-        val file = "templates/$name.txt"
-        logger.warn("readTemplate: $file")
-        return FileGenerator::class.java.classLoader
-            .getResourceAsStream(file)
-            ?.bufferedReader()
-            ?.readText()
-            ?: error("File not found $file")
     }
 
 }

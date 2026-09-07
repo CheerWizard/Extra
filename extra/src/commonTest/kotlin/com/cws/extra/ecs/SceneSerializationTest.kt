@@ -26,13 +26,17 @@ import com.cws.extra.memory.MemoryLayout
 import com.cws.extra.memory.NativeBuffer
 import com.cws.extra.memory.flip
 import com.cws.extra.test.Camera
+import com.cws.extra.test.CameraList
+import com.cws.extra.test.ExtraComponents
 import com.cws.extra.test.Movement
-import com.cws.extra.test.cameras
-import com.cws.extra.test.movements
+import com.cws.extra.test.MovementList
+import com.cws.extra.test.camera
+import com.cws.extra.test.movement
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertContentEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -43,8 +47,28 @@ class SceneSerializationTest {
 
     @BeforeTest
     fun setup() {
-        // Allocate a dedicated source scene 
-        sourceScene = Scene(capacity = 32)
+        // Allocate a dedicated source scene
+        ExtraComponents.registerAll()
+        sourceScene = Scene(entityCount = 32)
+    }
+
+    @Test
+    fun `component state persists generated qualified keys and follows their order`() {
+        val movementEntity = sourceScene.create(Movement(speed = 12.5f))
+        val cameraEntity = sourceScene.create(Camera(fov = 72.0f))
+        val reordered = sourceScene.components.copy(keys = sourceScene.components.keys.reversedArray())
+
+        assertTrue("com.cws.extra.test.Movement" in reordered.keys)
+        assertTrue("com.cws.extra.test.Camera" in reordered.keys)
+
+        val buffer = reordered.encode()
+        buffer.flip()
+        val decoded = buffer.decodeComponentsState()
+
+        assertEquals(32, decoded.entityCount)
+        assertContentEquals(reordered.keys, decoded.keys)
+        assertEquals(12.5f, decoded.getComponentList<Movement, MovementList>().speed[decoded.getPool<Movement>()!!.entityToComponent[movementEntity]])
+        assertEquals(72.0f, decoded.getComponentList<Camera, CameraList>().fov[decoded.getPool<Camera>()!!.entityToComponent[cameraEntity]])
     }
 
     @Test
@@ -83,12 +107,38 @@ class SceneSerializationTest {
             // --- THE DECODING PHASE ---
             val decodedScene = deserializedBuffer.decodeScene()
 
+            // Pool payloads are packed, but their registry slots must remain sparse and identical.
+            assertEquals(sourceScene.components.pools.size, decodedScene.components.pools.size)
+            sourceScene.components.pools.indices.forEach { poolIndex ->
+                val sourcePool = sourceScene.components.pools[poolIndex]
+                val decodedPool = decodedScene.components.pools[poolIndex]
+                assertEquals(
+                    sourcePool != null,
+                    decodedPool != null,
+                    "Pool presence changed at sparse registry slot $poolIndex",
+                )
+                if (sourcePool != null && decodedPool != null) {
+                    assertEquals(sourcePool.entityToComponent.size, decodedPool.entityToComponent.size)
+                    assertEquals(sourcePool.componentToEntity.size, decodedPool.componentToEntity.size)
+                    assertTrue(
+                        sourcePool.entityToComponent.array.copyOf(sourcePool.entityToComponent.size)
+                            .contentEquals(decodedPool.entityToComponent.array.copyOf(decodedPool.entityToComponent.size)),
+                        "Sparse entity mapping changed at registry slot $poolIndex",
+                    )
+                    assertTrue(
+                        sourcePool.componentToEntity.array.copyOf(sourcePool.componentToEntity.size)
+                            .contentEquals(decodedPool.componentToEntity.array.copyOf(decodedPool.componentToEntity.size)),
+                        "Dense entity mapping changed at registry slot $poolIndex",
+                    )
+                }
+            }
+
             // 5. METRIC & STATE VALIDATION
             // Verify structural identity parameters matched up exactly
             assertEquals(sourceScene.entities.size, decodedScene.entities.size, "Active entity count must match")
 
             // Verify entity id recycler stack recovered properly (Entity 0 must be inside)
-            assertFalse(decodedScene.entities.array.contains(0), "Entity 0 should be inactive")
+            assertFalse(decodedScene.entities.has(0), "Entity 0 should be inactive")
 
             // Spawn a fresh entity on the deserialized scene. It must reuse ID 0 from the recycled stack!
             val recycledEntityId = decodedScene.createEntity()
@@ -97,12 +147,12 @@ class SceneSerializationTest {
             // 6. QUERY & DATA CONSISTENCY CHECK
             // Run your custom generic loops on the recovered scene to ensure component lists match up
             var queryRuns = 0
-            decodedScene.forEach<Movement, Camera> { entity, moveIdx, camIdx ->
+            decodedScene.query<Movement, MovementList, Camera, CameraList>().forEach { entity, movements, moveIdx, cameras, camIdx ->
                 assertEquals(e1, entity, "Matching multi-component entity ID must remain identical")
 
                 // Fetch direct values via sugar list extensions from the recovered buffers
-                val recoveredSpeed = decodedScene.movements.speed[moveIdx]
-                val recoveredFov = decodedScene.cameras.fov[camIdx]
+                val recoveredSpeed = movements.speed[moveIdx]
+                val recoveredFov = cameras.fov[camIdx]
 
                 assertEquals(99.0f, recoveredSpeed)
                 assertEquals(110.0f, recoveredFov)

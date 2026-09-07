@@ -1,0 +1,269 @@
+package com.cws.extra.math.matrices
+
+import com.cws.extra.memory.*
+
+import com.cws.extra.lists.decode
+import com.cws.extra.lists.decodeGpu
+import com.cws.extra.lists.sizeBytes
+import com.cws.extra.lists.sizeBytesPacked
+import com.cws.extra.memory.Endian
+import com.cws.extra.memory.MemoryBoundary
+import com.cws.extra.memory.MemoryLayout
+import com.cws.extra.memory.NativeBuffer
+import kotlin.ByteArray
+import kotlin.Int
+
+public fun Mat4List?.sizeBytes(memoryLayout: MemoryLayout): Int = if (this == null) 0 else m00.sizeBytes(memoryLayout) + m01.sizeBytes(memoryLayout) + m02.sizeBytes(memoryLayout) + m03.sizeBytes(memoryLayout) + m10.sizeBytes(memoryLayout) + m11.sizeBytes(memoryLayout) + m12.sizeBytes(memoryLayout) + m13.sizeBytes(memoryLayout) + m20.sizeBytes(memoryLayout) + m21.sizeBytes(memoryLayout) + m22.sizeBytes(memoryLayout) + m23.sizeBytes(memoryLayout) + m30.sizeBytes(memoryLayout) + m31.sizeBytes(memoryLayout) + m32.sizeBytes(memoryLayout) + m33.sizeBytes(memoryLayout)
+
+public fun Mat4List?.sizeBytesPacked(memoryLayout: MemoryLayout): Int = if (this == null) 0 else m00.sizeBytesPacked(memoryLayout) + m01.sizeBytesPacked(memoryLayout) + m02.sizeBytesPacked(memoryLayout) + m03.sizeBytesPacked(memoryLayout) + m10.sizeBytesPacked(memoryLayout) + m11.sizeBytesPacked(memoryLayout) + m12.sizeBytesPacked(memoryLayout) + m13.sizeBytesPacked(memoryLayout) + m20.sizeBytesPacked(memoryLayout) + m21.sizeBytesPacked(memoryLayout) + m22.sizeBytesPacked(memoryLayout) + m23.sizeBytesPacked(memoryLayout) + m30.sizeBytesPacked(memoryLayout) + m31.sizeBytesPacked(memoryLayout) + m32.sizeBytesPacked(memoryLayout) + m33.sizeBytesPacked(memoryLayout)
+
+public fun Mat4List?.encode(
+  memoryLayout: MemoryLayout = MemoryLayout.KOTLIN,
+  endian: Endian = Endian.LITTLE,
+  memoryBoundary: MemoryBoundary = MemoryBoundary.KOTLIN_HEAP,
+): NativeBuffer {
+  if (this == null) return NativeBuffer(0)
+  val buffer = NativeBuffer(capacity = sizeBytes(memoryLayout), memoryLayout = memoryLayout, endian = endian, memoryBoundary = memoryBoundary)
+  encode(buffer)
+  return buffer
+}
+
+public fun Mat4List?.encodeGpu(
+  memoryLayout: MemoryLayout = MemoryLayout.KOTLIN,
+  endian: Endian = Endian.LITTLE,
+  memoryBoundary: MemoryBoundary = MemoryBoundary.KOTLIN_HEAP,
+): NativeBuffer {
+  if (this == null) return NativeBuffer(0)
+  val buffer = NativeBuffer(capacity = sizeBytes(memoryLayout), memoryLayout = memoryLayout, endian = endian, memoryBoundary = memoryBoundary)
+  encodeGpu(buffer)
+  return buffer
+}
+
+public fun Mat4List?.encodePacked(
+  memoryLayout: MemoryLayout = MemoryLayout.KOTLIN,
+  endian: Endian = Endian.LITTLE,
+  memoryBoundary: MemoryBoundary = MemoryBoundary.KOTLIN_HEAP,
+): NativeBuffer {
+  if (this == null) return NativeBuffer(0)
+  val buffer = NativeBuffer(capacity = sizeBytesPacked(memoryLayout), memoryLayout = memoryLayout, endian = endian, memoryBoundary = memoryBoundary)
+  encodePacked(buffer)
+  return buffer
+}
+
+public fun Mat4List?.encode(buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushInt(size)
+  for (i in 0 until size) {
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+       encode(i, buffer)
+  }
+}
+
+public fun Mat4List?.encodeGpu(buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushInt(size)
+  for (i in 0 until size) {
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+  }
+}
+
+public fun Mat4List?.encodePacked(buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushInt(size)
+  for (i in 0 until size) {
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+  }
+}
+
+public fun Mat4List?.encode(i: Int, buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushFloat(m00[i])
+  buffer.pushFloat(m01[i])
+  buffer.pushFloat(m02[i])
+  buffer.pushFloat(m03[i])
+  buffer.pushFloat(m10[i])
+  buffer.pushFloat(m11[i])
+  buffer.pushFloat(m12[i])
+  buffer.pushFloat(m13[i])
+  buffer.pushFloat(m20[i])
+  buffer.pushFloat(m21[i])
+  buffer.pushFloat(m22[i])
+  buffer.pushFloat(m23[i])
+  buffer.pushFloat(m30[i])
+  buffer.pushFloat(m31[i])
+  buffer.pushFloat(m32[i])
+  buffer.pushFloat(m33[i])
+}
+
+public fun Mat4List?.encodeGpu(i: Int, buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushFloat(m00[i])
+  buffer.pushFloat(m01[i])
+  buffer.pushFloat(m02[i])
+  buffer.pushFloat(m03[i])
+  buffer.pushFloat(m10[i])
+  buffer.pushFloat(m11[i])
+  buffer.pushFloat(m12[i])
+  buffer.pushFloat(m13[i])
+  buffer.pushFloat(m20[i])
+  buffer.pushFloat(m21[i])
+  buffer.pushFloat(m22[i])
+  buffer.pushFloat(m23[i])
+  buffer.pushFloat(m30[i])
+  buffer.pushFloat(m31[i])
+  buffer.pushFloat(m32[i])
+  buffer.pushFloat(m33[i])
+}
+
+public fun Mat4List.encodePacked(i: Int, buffer: NativeBuffer) {
+  buffer.pushFloat(m00[i])
+  buffer.pushFloat(m01[i])
+  buffer.pushFloat(m02[i])
+  buffer.pushFloat(m03[i])
+  buffer.pushFloat(m10[i])
+  buffer.pushFloat(m11[i])
+  buffer.pushFloat(m12[i])
+  buffer.pushFloat(m13[i])
+  buffer.pushFloat(m20[i])
+  buffer.pushFloat(m21[i])
+  buffer.pushFloat(m22[i])
+  buffer.pushFloat(m23[i])
+  buffer.pushFloat(m30[i])
+  buffer.pushFloat(m31[i])
+  buffer.pushFloat(m32[i])
+  buffer.pushFloat(m33[i])
+}
+
+public fun NativeBuffer.decodeMat4List(): Mat4List {
+  val decodedSize = nextInt()
+  val buffer = this
+  return Mat4List(decodedSize).apply {  
+      for (i in 0 until decodedSize) {
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+    }
+  }
+}
+
+public fun NativeBuffer.decodeGpuMat4List(): Mat4List {
+  val decodedSize = nextInt()
+  val buffer = this
+  return Mat4List(decodedSize).apply {  
+      for (i in 0 until decodedSize) {
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+        decode(i, buffer)
+    }
+  }
+}
+
+public fun Mat4List.decode(i: Int, buffer: NativeBuffer) {
+    m00.decode(i, buffer)
+    m01.decode(i, buffer)
+    m02.decode(i, buffer)
+    m03.decode(i, buffer)
+    m10.decode(i, buffer)
+    m11.decode(i, buffer)
+    m12.decode(i, buffer)
+    m13.decode(i, buffer)
+    m20.decode(i, buffer)
+    m21.decode(i, buffer)
+    m22.decode(i, buffer)
+    m23.decode(i, buffer)
+    m30.decode(i, buffer)
+    m31.decode(i, buffer)
+    m32.decode(i, buffer)
+    m33.decode(i, buffer)
+}
+
+public fun Mat4List.decodeGpu(i: Int, buffer: NativeBuffer) {
+    m00.decodeGpu(i, buffer)
+    m01.decodeGpu(i, buffer)
+    m02.decodeGpu(i, buffer)
+    m03.decodeGpu(i, buffer)
+    m10.decodeGpu(i, buffer)
+    m11.decodeGpu(i, buffer)
+    m12.decodeGpu(i, buffer)
+    m13.decodeGpu(i, buffer)
+    m20.decodeGpu(i, buffer)
+    m21.decodeGpu(i, buffer)
+    m22.decodeGpu(i, buffer)
+    m23.decodeGpu(i, buffer)
+    m30.decodeGpu(i, buffer)
+    m31.decodeGpu(i, buffer)
+    m32.decodeGpu(i, buffer)
+    m33.decodeGpu(i, buffer)
+}
+
+public fun ByteArray.decodeMat4List(): Mat4List = NativeBuffer(this).decodeMat4List()

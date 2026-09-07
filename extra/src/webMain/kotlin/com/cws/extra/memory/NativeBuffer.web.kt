@@ -134,6 +134,7 @@ actual class NativeBuffer actual constructor(
         destIndex: Int,
         sizeBytes: Int,
     ) {
+        requireCopyBounds(dest, srcIndex, destIndex, sizeBytes)
         val bytes = this.bytes
         val destBytes = dest.bytes
         if (bytes == null || destBytes == null) return

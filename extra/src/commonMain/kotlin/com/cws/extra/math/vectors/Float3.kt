@@ -141,3 +141,66 @@ data class Float3(
     val gb get() = Float2(y, z)
     val rgb get() = Float3(x, y, z)
 }
+
+fun Float3List.add(i: Int, v: Float, out: Float3List) {
+    out.x[i] = x[i] + v
+    out.y[i] = y[i] + v
+    out.z[i] = z[i] + v
+}
+
+fun Float3List.sub(i: Int, v: Float, out: Float3List) {
+    out.x[i] = x[i] - v
+    out.y[i] = y[i] - v
+    out.z[i] = z[i] - v
+}
+
+fun Float3List.mul(i: Int, v: Float, out: Float3List) {
+    out.x[i] = x[i] * v
+    out.y[i] = y[i] * v
+    out.z[i] = z[i] * v
+}
+
+fun Float3List.div(i: Int, v: Float, out: Float3List) {
+    out.x[i] = x[i] / v
+    out.y[i] = y[i] / v
+    out.z[i] = z[i] / v
+}
+
+fun Float3List.add(i: Int, other: Float3List, out: Float3List) {
+    out.x[i] = x[i] + other.x[i]
+    out.y[i] = y[i] + other.y[i]
+    out.z[i] = z[i] + other.z[i]
+}
+
+fun Float3List.sub(i: Int, other: Float3List, out: Float3List) {
+    out.x[i] = x[i] - other.x[i]
+    out.y[i] = y[i] - other.y[i]
+    out.z[i] = z[i] - other.z[i]
+}
+
+fun Float3List.mul(i: Int, other: Float3List, out: Float3List) {
+    out.x[i] = x[i] * other.x[i]
+    out.y[i] = y[i] * other.y[i]
+    out.z[i] = z[i] * other.z[i]
+}
+
+fun Float3List.div(i: Int, other: Float3List, out: Float3List) {
+    out.x[i] = x[i] / other.x[i]
+    out.y[i] = y[i] / other.y[i]
+    out.z[i] = z[i] / other.z[i]
+}
+
+fun Float3List.neg(i: Int, out: Float3List) {
+    out.x[i] = -x[i]
+    out.y[i] = -y[i]
+    out.z[i] = -z[i]
+}
+
+fun Float3List.mul(i: Int, m: com.cws.extra.math.matrices.Mat3List, out: Float3List) {
+    val vx = x[i]
+    val vy = y[i]
+    val vz = z[i]
+    out.x[i] = vx * m.m00[i] + vy * m.m10[i] + vz * m.m20[i]
+    out.y[i] = vx * m.m01[i] + vy * m.m11[i] + vz * m.m21[i]
+    out.z[i] = vx * m.m02[i] + vy * m.m12[i] + vz * m.m22[i]
+}

@@ -24,7 +24,7 @@ class NativeBufferStressTest {
     @Test
     fun random_primitive_round_trip() {
         repeat(100) {
-            forEachConfiguration { _, _, buffer ->
+            forEachConfiguration(capacity = 16 * 1024) { _, _, buffer ->
 
                 val random = Random(it)
 

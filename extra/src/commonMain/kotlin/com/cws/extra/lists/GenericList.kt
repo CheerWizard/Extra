@@ -16,6 +16,8 @@
 @file:Suppress("NOTHING_TO_INLINE")
 package com.cws.extra.lists
 
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -23,16 +25,15 @@ import kotlin.random.Random
 inline fun <reified T> GenericList(
     capacity: Int = 16,
     noinline init: (Int) -> T? = { null },
-) = GenericList(Array(capacity, init), init)
+) = GenericList(0, Array(capacity, init), init)
 
 // generic list implementation for SoA, which is less optimized because it uses heap allocations and object references during read/write
 class GenericList<T>(
+    var _size: Int = 0,
+    @Contextual
     var array: Array<T>,
     val init: (Int) -> T,
-    size: Int = 0,
 ) : Collection<T> {
-
-    var _size = size
 
     override val size: Int get() = _size
 
@@ -60,8 +61,16 @@ class GenericList<T>(
         return contains == elements.size
     }
 
-    // FIXME: not really used and implemented at the moment.
-    override fun iterator(): Iterator<T> = iterator {}
+    override fun iterator(): Iterator<T> = object : Iterator<T> {
+        private var index = 0
+
+        override fun hasNext(): Boolean = index < size
+
+        override fun next(): T {
+            if (!hasNext()) throw NoSuchElementException()
+            return array[index++]
+        }
+    }
 
     inline fun clear() {
         _size = 0
@@ -110,9 +119,21 @@ class GenericList<T>(
 
     inline fun removeLast(): T = pop()
 
-    @OptIn(ExperimentalStdlibApi::class)
+    inline fun resize(newSize: Int) {
+        if (newSize > capacity) {
+            reallocate(newSize)
+        }
+        _size = newSize
+    }
+
     inline fun ensureCapacity(newCapacity: Int) {
-        if (newCapacity <= array.size) return
+        if (newCapacity > array.size) {
+            reallocate(newCapacity)
+        }
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    inline fun reallocate(newCapacity: Int) {
         array = array.copyOf((newCapacity * 1.1f).roundToInt(), init)
     }
 
@@ -139,8 +160,7 @@ class GenericList<T>(
     }
 
     inline fun clone(): GenericList<T> {
-        val copy = GenericList(array.copyOf(), init, size)
-        return copy
+        return GenericList(size, array.copyOf(), init)
     }
 
     inline fun forEach(block: (T) -> Unit) {

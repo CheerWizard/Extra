@@ -82,6 +82,15 @@ actual class NativeBuffer actual constructor(
 
     val size: Int get() = buffer?.remaining() ?: 0
 
+    val byteArray: ByteArray? get() {
+        val buffer = buffer ?: return null
+        return if (buffer.hasArray()) buffer.array() else null
+    }
+
+    val directBuffer: ByteBuffer? get() {
+        return if (buffer?.hasArray() == true) null else buffer
+    }
+
     actual fun release() {
         val buffer = buffer ?: return
         if (!isHeapBoundary()) {
@@ -156,6 +165,7 @@ actual class NativeBuffer actual constructor(
         destIndex: Int,
         sizeBytes: Int,
     ) {
+        requireCopyBounds(dest, srcIndex, destIndex, sizeBytes)
         val buffer = buffer
         val dstBuffer = dest.buffer
         if (buffer == null || dstBuffer == null) return
@@ -306,7 +316,7 @@ actual class NativeBuffer actual constructor(
         val dup = buffer.duplicate()
         dup.position(offset)
         dup.limit(offset + sizeBytes * Byte.sizeBytes(MemoryLayout.KOTLIN))
-        dup.get(array)
+        dup.get(array, 0, sizeBytes)
         return array
     }
 

@@ -18,6 +18,7 @@ package com.cws.extra.gen
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.google.devtools.ksp.symbol.KSValueParameter
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
@@ -43,6 +44,36 @@ fun KSPropertyDeclaration.createField(offset: String): Field {
         packageName = packageName.asString(),
         name = simpleName.asString(),
         offset = offset,
+        type = simpleType,
+        typeName = nonNullTypeName,
+        defaultValue = typesWithDefaults.getOrDefault(simpleType, "$simpleType()"),
+        fixedSize = extraFixedSize(),
+        isStringUtf16 = extraStringUtf16(),
+        isNativeEnum = (resolvedType.declaration as? KSClassDeclaration)?.classKind == ClassKind.ENUM_CLASS,
+    )
+}
+
+fun KSValueParameter.createField(packageName: String): Field? {
+    val name = name?.asString() ?: return null
+    val resolvedType = type.resolve()
+    val simpleType = resolvedType.declaration.simpleName.asString()
+
+    val typeName: TypeName = when {
+        simpleType.isPrimitive || simpleType.isCollection -> resolvedType.toTypeName()
+        else -> resolvedType.declaration.qualifiedName()
+    }
+
+    // also handle nullable types - strip nullability for type arg resolution
+    val nonNullTypeName = when (typeName) {
+        is ParameterizedTypeName -> typeName.copy(nullable = false)
+        is ClassName -> typeName.copy(nullable = false)
+        else -> typeName
+    }
+
+    return Field(
+        packageName = packageName,
+        name = name,
+        offset = "",
         type = simpleType,
         typeName = nonNullTypeName,
         defaultValue = typesWithDefaults.getOrDefault(simpleType, "$simpleType()"),

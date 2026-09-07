@@ -18,302 +18,284 @@ package com.cws.extra.ecs
 import com.cws.extra.lists.IntList
 import com.cws.extra.memory.ExtraData
 import com.cws.extra.memory.IExtraList
+import kotlin.jvm.JvmName
 
-const val ComponentNull = -1
-const val EntityNull = -1
-
-fun ComponentPool(entityCount: Int) = ComponentPool(
-    IntList(entityCount) { ComponentNull },
-    IntList(entityCount) { EntityNull },
+fun Scene(
+    entityCount: Int = EntityPool.DEFAULT_ENTITY_COUNT,
+) = Scene(
+    EntityPool(entityCount),
+    ComponentRegistry.createComponentsState(entityCount),
 )
 
-@ExtraData
-class ComponentPool(
-    // store component indices by entity index
-    val entityToComponent: IntList,
-    // store entity indices by component index
-    val componentToEntity: IntList,
-) {
-
-    fun has(entity: Int): Boolean {
-        if (entity >= entityToComponent.size || entity == ComponentNull) return false
-        val componentIndex = entityToComponent[entity]
-        return componentIndex != ComponentNull && componentIndex < componentToEntity.size && componentToEntity[componentIndex] == entity
-    }
-
-    fun getComponentIndex(entity: Int) = entityToComponent[entity]
-
-    fun add(entity: Int): Int {
-        if (has(entity)) return getComponentIndex(entity)
-
-        componentToEntity.add(entity)
-        val componentIndex = componentToEntity.lastIndex
-
-        while (entity >= entityToComponent.size) {
-            entityToComponent.add(ComponentNull)
-        }
-
-        entityToComponent[entity] = componentIndex
-
-        return componentIndex
-    }
-
-    fun remove(entity: Int): Int {
-        if (!has(entity)) return ComponentNull
-
-        val componentIndex = entityToComponent[entity]
-        val lastComponentIndex = componentToEntity.lastIndex
-        val lastEntity = componentToEntity[lastComponentIndex]
-
-        componentToEntity.removeAtSwap(componentIndex)
-
-        if (componentIndex != lastComponentIndex) {
-            entityToComponent[lastEntity] = componentIndex
-        }
-        entityToComponent[entity] = ComponentNull
-
-        return componentIndex
-    }
-
-    fun clear() {
-        entityToComponent.clear()
-        componentToEntity.clear()
-    }
-
-}
-
-fun ComponentBitmasks(capacity: Int) = ComponentBitmasks(LongArray(capacity))
-
-@ExtraData
-data class ComponentBitmasks(
-    var signatures: LongArray,
-) {
-
-    fun add(entity: Int, componentId: Int) {
-        signatures[entity] = signatures[entity] or (1L shl componentId)
-    }
-
-    fun remove(entity: Int, componentId: Int) {
-        signatures[entity] = signatures[entity] and (1L shl componentId).inv()
-    }
-
-    fun hasAll(entity: Int, mask: Long) = (signatures[entity] and mask) == mask
-
-    fun clear() {
-        signatures.fill(0)
-    }
-
-}
-
-interface ComponentStorage {
-    val list: IExtraList
-    fun <T> add(entity: Int, component: T)
-    fun remove(entity: Int)
-    fun clear()
-    fun index(entity: Int): Int
-    fun has(entity: Int): Boolean
-}
-
-fun Scene(capacity: Int) = Scene(
-    IntList(capacity) { EntityNull },
-    ComponentBitmasks(capacity),
-    IntList(capacity) { EntityNull },
-    0,
-    ComponentRegistry(capacity),
-)
-
+/**
+ * The main entry point for ECS operations. A Scene contains entities and their components.
+ */
 @ExtraData
 data class Scene(
-    val entities: IntList,
-    val bitmasks: ComponentBitmasks,
-    val removedEntities: IntList,
-    var entityIdCounter: Int,
-    val registry: ComponentRegistry,
+    @PublishedApi
+    internal val entities: EntityPool,
+    val components: ComponentsState,
 ) {
 
-    fun createEntity(): Int {
-        val newEntity = if (removedEntities.isNotEmpty) {
-            removedEntities.pop()
-        } else {
-            entityIdCounter++
-        }
-        return addEntity(newEntity)
-    }
+    /** Creates a new entity. */
+    fun createEntity(): Int = entities.create()
 
-    fun addEntity(entity: Int): Int {
-        if (entities.array.contains(entity)) return entity
-        entities.add(entity)
-        return entity
-    }
+    fun createEntities(entityCount: Int): IntList = entities.create(entityCount)
 
+    fun addEntity(entity: Int): Boolean = entities.add(entity)
+
+    /** Removes an entity and all its components from the scene. */
     fun removeEntity(entity: Int) {
-        if (!entities.array.contains(entity)) return
-
-        entities.forEachIndexed { i, e ->
-            if (entity == e) {
-                removedEntities.add(entities.removeAtSwap(i))
-                return@forEachIndexed
-            }
-        }
-
-        for (i in 0 until registry.size) {
-            registry[i].remove(entity)
-        }
-
-        bitmasks.signatures[entity] = 0L
+        if (!entities.has(entity)) return
+        entities.remove(entity)
+        components.removeEntity(entity)
     }
+
+    fun hasEntity(entity: Int) = entities.has(entity)
 
     fun clear() {
         entities.clear()
-        for (i in 0 until registry.size) {
-            registry[i].clear()
+        components.clear()
+    }
+
+    inline fun <reified T> create(component: T): Int {
+        val entity = createEntity()
+        val id = ComponentId<T>()
+        components.add(id, entity, component)
+        return entity
+    }
+
+    inline fun <reified T1, reified T2> create(
+        component1: T1,
+        component2: T2,
+    ): Int {
+        val entity = createEntity()
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        components.add(id1, entity, component1)
+        components.add(id2, entity, component2)
+        return entity
+    }
+
+    inline fun <reified T1, reified T2, reified T3> create(
+        component1: T1,
+        component2: T2,
+        component3: T3,
+    ): Int {
+        val entity = createEntity()
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        val id3 = ComponentId<T3>()
+        components.add(id1, entity, component1)
+        components.add(id2, entity, component2)
+        components.add(id3, entity, component3)
+        return entity
+    }
+
+    inline fun <reified T1, reified T2, reified T3, reified T4> create(
+        component1: T1,
+        component2: T2,
+        component3: T3,
+        component4: T4,
+    ): Int {
+        val entity = createEntity()
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        val id3 = ComponentId<T3>()
+        val id4 = ComponentId<T4>()
+        components.add(id1, entity, component1)
+        components.add(id2, entity, component2)
+        components.add(id3, entity, component3)
+        components.add(id4, entity, component4)
+        return entity
+    }
+
+    inline fun <reified T> create(
+        entityCount: Int,
+        component: T
+    ) {
+        val entities = createEntities(entityCount)
+        val id = ComponentId<T>()
+        while (entities.isNotEmpty) {
+            val entity = entities.pop()
+            components.add(id, entity, component)
         }
-        registry.clear()
-        entityIdCounter = 0
-        removedEntities.clear()
     }
 
-    inline fun <reified T> add(entity: Int, component: T) {
-        val id = getComponentID<T>()
-        val c = registry[id]
-        c.add(entity, component)
-        bitmasks.add(entity, id)
+    inline fun <reified T1, reified T2> create(
+        entityCount: Int,
+        component1: T1,
+        component2: T2,
+    ) {
+        val entities = createEntities(entityCount)
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        while (entities.isNotEmpty) {
+            val entity = entities.pop()
+            components.add(id1, entity, component1)
+            components.add(id2, entity, component2)
+        }
     }
 
-    inline fun <reified T> has(entity: Int): Boolean {
-        val id = getComponentID<T>()
-        return registry[id].has(entity)
+    inline fun <reified T1, reified T2, reified T3> create(
+        entityCount: Int,
+        component1: T1,
+        component2: T2,
+        component3: T3,
+    ) {
+        val entities = createEntities(entityCount)
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        val id3 = ComponentId<T3>()
+        while (entities.isNotEmpty) {
+            val entity = entities.pop()
+            components.add(id1, entity, component1)
+            components.add(id2, entity, component2)
+            components.add(id3, entity, component3)
+        }
     }
 
+    inline fun <reified T> add(
+        entity: Int,
+        component: T
+    ) {
+        val id = ComponentId<T>()
+        components.add(id, entity, component)
+    }
+
+    inline fun <reified T1, reified T2> add(
+        entity: Int,
+        component1: T1,
+        component2: T2,
+    ) {
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        components.add(id1, entity, component1)
+        components.add(id2, entity, component2)
+    }
+
+    inline fun <reified T1, reified T2, reified T3> add(
+        entity: Int,
+        component1: T1,
+        component2: T2,
+        component3: T3,
+    ) {
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        val id3 = ComponentId<T3>()
+        components.add(id1, entity, component1)
+        components.add(id2, entity, component2)
+        components.add(id3, entity, component3)
+    }
+
+    inline fun <reified T1, reified T2, reified T3, reified T4> add(
+        entity: Int,
+        component1: T1,
+        component2: T2,
+        component3: T3,
+        component4: T4,
+    ) {
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        val id3 = ComponentId<T3>()
+        val id4 = ComponentId<T4>()
+        components.add(id1, entity, component1)
+        components.add(id2, entity, component2)
+        components.add(id3, entity, component3)
+        components.add(id4, entity, component4)
+    }
+
+    @JvmName("has")
+    inline fun <reified T> has(entity: Int): Boolean = components.has<T>(entity)
+
+    @JvmName("has2")
+    inline fun <reified T1, reified T2> has(entity: Int): Boolean {
+        return components.has<T1>(entity) && components.has<T2>(entity)
+    }
+
+    @JvmName("has3")
+    inline fun <reified T1, reified T2, reified T3> has(entity: Int): Boolean {
+        return components.has<T1>(entity) && components.has<T2>(entity) && components.has<T3>(entity)
+    }
+
+    @JvmName("has4")
+    inline fun <reified T1, reified T2, reified T3, reified T4> has(entity: Int): Boolean {
+        return components.has<T1>(entity) && components.has<T2>(entity) &&
+                components.has<T3>(entity) && components.has<T4>(entity)
+    }
+
+    @JvmName("remove")
     inline fun <reified T> remove(entity: Int) {
-        val id = getComponentID<T>()
-        val c = registry[id]
-        c.remove(entity)
-        bitmasks.remove(entity, id)
+        val id = ComponentId<T>()
+        components.remove(id, entity)
     }
 
-    inline fun <reified T1> forEach(
-        block: (entity: Int, c1: Int) -> Unit
+    @JvmName("remove2")
+    inline fun <reified T1, reified T2> remove(entity: Int) {
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        components.remove(id1, entity)
+        components.remove(id2, entity)
+    }
+
+    @JvmName("remove3")
+    inline fun <reified T1, reified T2, reified T3> remove(entity: Int) {
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        val id3 = ComponentId<T3>()
+        components.remove(id1, entity)
+        components.remove(id2, entity)
+        components.remove(id3, entity)
+    }
+
+    @JvmName("remove4")
+    inline fun <reified T1, reified T2, reified T3, reified T4> remove(entity: Int) {
+        val id1 = ComponentId<T1>()
+        val id2 = ComponentId<T2>()
+        val id3 = ComponentId<T3>()
+        val id4 = ComponentId<T4>()
+        components.remove(id1, entity)
+        components.remove(id2, entity)
+        components.remove(id3, entity)
+        components.remove(id4, entity)
+    }
+
+    inline fun <reified T> get(entity: Int): Int {
+        return components.getPoolUnsafe(ComponentRegistry.getRegistrationIndex<T>()).getComponentIndex(entity)
+    }
+
+    inline fun <reified T1, reified L1 : IExtraList> update(
+        entity: Int,
+        updateBlock: L1.(componentIndex: Int) -> Unit,
     ) {
-        val id1 = getComponentID<T1>()
-        val c1 = registry[id1]
-        val mask = (1L shl id1)
-        for (i in entities.lastIndex downTo 0) {
-            val entityId = entities[i]
-            if (bitmasks.hasAll(entityId, mask)) {
-                val i1 = c1.index(entityId)
-                if (i1 != ComponentNull) {
-                    block(entityId, i1)
-                }
-            }
+        val id = ComponentId<T1>()
+        val storageIndex = ComponentRegistry.getRegistrationIndex(id)
+        val storage = components.storages[storageIndex]
+        val pool = components.getPoolUnsafe(storageIndex)
+        val componentIndex = pool.entityToComponent[entity]
+        if (storage != null && componentIndex != ComponentNull) {
+            (storage.list as L1).updateBlock(componentIndex)
         }
     }
 
-    inline fun <reified T1, reified T2> forEach(
-        block: (entity: Int, c1: Int, c2: Int) -> Unit
-    ) {
-        val id1 = getComponentID<T1>()
-        val id2 = getComponentID<T2>()
-        val c1 = registry[id1]
-        val c2 = registry[id2]
-        val mask = (1L shl id1) or (1L shl id2)
-        for (i in entities.lastIndex downTo 0) {
-            val entityId = entities[i]
-            if (bitmasks.hasAll(entityId, mask)) {
-                val i1 = c1.index(entityId)
-                val i2 = c2.index(entityId)
-                if (i1 != ComponentNull && i2 != ComponentNull) {
-                    block(entityId, i1, i2)
-                }
-            }
-        }
-    }
+    /** Creates a query for entities matching specified component types. */
+    @JvmName("query")
+    inline fun <reified T1, reified L1: IExtraList> query() =
+        Query1<T1, L1>(this, ComponentId<T1>())
 
-    inline fun <reified T1, reified T2, reified T3> forEach(
-        block: (entity: Int, c1: Int, c2: Int, c3: Int) -> Unit
-    ) {
-        val id1 = getComponentID<T1>()
-        val id2 = getComponentID<T2>()
-        val id3 = getComponentID<T3>()
-        val c1 = registry[id1]
-        val c2 = registry[id2]
-        val c3 = registry[id3]
-        val mask = (1L shl id1) or (1L shl id2) or (1L shl id3)
-        for (i in entities.lastIndex downTo 0) {
-            val entityId = entities[i]
-            if (bitmasks.hasAll(entityId, mask)) {
-                val i1 = c1.index(entityId)
-                val i2 = c2.index(entityId)
-                val i3 = c3.index(entityId)
-                if (i1 != ComponentNull && i2 != ComponentNull && i3 != ComponentNull) {
-                    block(entityId, i1, i2, i3)
-                }
-            }
-        }
-    }
+    @JvmName("query2")
+    inline fun <reified T1, reified L1: IExtraList, reified T2, reified L2: IExtraList> query() =
+        Query2<T1, L1, T2, L2>(this, ComponentId<T1>(), ComponentId<T2>())
 
-    inline fun <reified T1, reified T2, reified T3, reified T4> forEach(
-        block: (entity: Int, c1: Int, c2: Int, c3: Int, c4: Int) -> Unit
-    ) {
-        val id1 = getComponentID<T1>()
-        val id2 = getComponentID<T2>()
-        val id3 = getComponentID<T3>()
-        val id4 = getComponentID<T4>()
-        val c1 = registry[id1]
-        val c2 = registry[id2]
-        val c3 = registry[id3]
-        val c4 = registry[id3]
-        val mask = (1L shl id1) or (1L shl id2) or (1L shl id3) or (1L shl id4)
-        for (i in entities.lastIndex downTo 0) {
-            val entityId = entities[i]
-            if (bitmasks.hasAll(entityId, mask)) {
-                val i1 = c1.index(entityId)
-                val i2 = c2.index(entityId)
-                val i3 = c3.index(entityId)
-                val i4 = c4.index(entityId)
-                if (i1 != ComponentNull &&
-                    i2 != ComponentNull &&
-                    i3 != ComponentNull &&
-                    i4 != ComponentNull
-                ) {
-                    block(entityId, i1, i2, i3, i4)
-                }
-            }
-        }
-    }
+    @JvmName("query3")
+    inline fun <reified T1, reified L1: IExtraList, reified T2, reified L2: IExtraList, reified T3, reified L3 : IExtraList> query() =
+        Query3<T1, L1, T2, L2, T3, L3>(this, ComponentId<T1>(), ComponentId<T2>(), ComponentId<T3>())
 
-    inline fun <reified T1, reified T2, reified T3, reified T4, reified T5> forEach(
-        block: (entity: Int, c1: Int, c2: Int, c3: Int, c4: Int, c5: Int) -> Unit
-    ) {
-        val id1 = getComponentID<T1>()
-        val id2 = getComponentID<T2>()
-        val id3 = getComponentID<T3>()
-        val id4 = getComponentID<T4>()
-        val id5 = getComponentID<T5>()
-        val c1 = registry[id1]
-        val c2 = registry[id2]
-        val c3 = registry[id3]
-        val c4 = registry[id4]
-        val c5 = registry[id5]
-        val mask = (1L shl id1) or (1L shl id2) or (1L shl id3) or (1L shl id4) or (1L shl id5)
-        for (i in entities.lastIndex downTo 0) {
-            val entityId = entities[i]
-            if (bitmasks.hasAll(entityId, mask)) {
-                val i1 = c1.index(entityId)
-                val i2 = c2.index(entityId)
-                val i3 = c3.index(entityId)
-                val i4 = c4.index(entityId)
-                val i5 = c5.index(entityId)
-                if (i1 != ComponentNull &&
-                    i2 != ComponentNull &&
-                    i3 != ComponentNull &&
-                    i4 != ComponentNull &&
-                    i5 != ComponentNull
-                ) {
-                    block(entityId, i1, i2, i3, i4, i5)
-                }
-            }
-        }
-    }
+    @JvmName("query4")
+    inline fun <reified T1, reified L1: IExtraList, reified T2, reified L2: IExtraList, reified T3, reified L3 : IExtraList, reified T4, reified L4 : IExtraList> query() =
+        Query4<T1, L1, T2, L2, T3, L3, T4, L4>(this, ComponentId<T1>(), ComponentId<T2>(), ComponentId<T3>(), ComponentId<T4>())
 
+    @JvmName("query5")
+    inline fun <reified T1, reified L1: IExtraList, reified T2, reified L2: IExtraList, reified T3, reified L3 : IExtraList, reified T4, reified L4 : IExtraList, reified T5, reified L5 : IExtraList> query() =
+        Query5<T1, L1, T2, L2, T3, L3, T4, L4, T5, L5>(this, ComponentId<T1>(), ComponentId<T2>(), ComponentId<T3>(), ComponentId<T4>(), ComponentId<T5>())
 }

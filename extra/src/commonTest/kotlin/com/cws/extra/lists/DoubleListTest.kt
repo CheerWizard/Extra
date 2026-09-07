@@ -218,6 +218,18 @@ class DoubleListTest {
     }
 
     @Test
+    fun filterWith() {
+        val list = DoubleList()
+        repeat(10) { list.add(it.toDouble()) }
+
+        val result = list.filterWith { it.toInt() % 2 == 0 }
+
+        assertTrue(result === list)
+        assertEquals(5, list.size)
+        assertEquals(listOf(0.0, 2.0, 4.0, 6.0, 8.0), list.array.copyOf(list.size).toList())
+    }
+
+    @Test
     fun sort() {
         val list = DoubleList()
 
@@ -279,6 +291,47 @@ class DoubleListTest {
         assertEquals(1.2, list[0])
         assertEquals(2.7, list[1])
         assertEquals(3.9, list[2])
+    }
+
+    @Test
+    fun primitiveKeySortsHandleInputDistributionsAndReuseStack() {
+        val distributions = listOf(
+            doubleArrayOf(),
+            doubleArrayOf(1.0),
+            doubleArrayOf(-5.0, -1.0, 0.0, 2.0, 9.0),
+            doubleArrayOf(9.0, 2.0, 0.0, -1.0, -5.0),
+            doubleArrayOf(3.0, 3.0, 3.0, 3.0, 3.0),
+            doubleArrayOf(4.0, -2.0, 4.0, 1.0, -2.0, 0.0, 1.0),
+        )
+
+        fun assertSorted(list: DoubleList, selector: (Double) -> Double) {
+            for (i in 1 until list.size) {
+                assertTrue(selector(list[i - 1]) <= selector(list[i]))
+            }
+        }
+
+        for (values in distributions) {
+            DoubleList(values.size, values.copyOf()).also { list ->
+                list.sortByInt { it.toInt() }
+                assertSorted(list) { it.toInt().toDouble() }
+            }
+            DoubleList(values.size, values.copyOf()).also { list ->
+                list.sortByLong { (it * 10.0).toLong() }
+                assertSorted(list) { (it * 10.0).toLong().toDouble() }
+            }
+            DoubleList(values.size, values.copyOf()).also { list ->
+                list.sortByFloat { it.toFloat() }
+                assertSorted(list) { it.toFloat().toDouble() }
+            }
+            DoubleList(values.size, values.copyOf()).also { list ->
+                list.sortByDouble { it }
+                assertSorted(list) { it }
+                val stack = list.__sortStack
+                list.sortByDouble { -it }
+                assertTrue(stack === list.__sortStack)
+                assertSorted(list) { -it }
+            }
+        }
     }
 
     @Test

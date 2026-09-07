@@ -33,7 +33,7 @@ plugins {
 }
 
 group = "io.github.cheerwizard"
-version = "1.0.18"
+version = "1.0.19"
 
 spotless {
     kotlin {
@@ -108,6 +108,10 @@ kotlin {
                 "build/generated/ksp/metadata/commonMain/kotlin",
             )
 
+            if (providers.gradleProperty("regenerateFrozenSources").isPresent) {
+                kotlin.srcDir("src/commonTest/kotlin/com/cws/extra/test")
+            }
+
             dependencies {
                 // Logger
                 implementation(libs.print.lib)
@@ -117,13 +121,6 @@ kotlin {
                 api(libs.kotlinx.coroutines.core)
                 api(libs.kotlinx.serialization.core)
                 api(libs.kotlinx.serialization.json)
-            }
-        }
-
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.kotlinx.coroutines.test)
             }
         }
 
@@ -170,23 +167,44 @@ kotlin {
 
         // test source sets
 
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
+
+        val jniTest by creating {
+            kotlin.srcDirs("build/generated/ksp/metadata/jniMain/kotlin")
+            dependsOn(commonTest)
+        }
+
+        val cinteropTest by creating {
+            dependsOn(commonTest)
+        }
+
         val androidHostTest by getting {
+            dependsOn(jniTest)
             dependencies {
                 implementation(libs.robolectric)
                 implementation(libs.test.core)
             }
         }
 
+        val desktopTest by getting {
+            dependsOn(jniTest)
+        }
+
         val webTest by creating { dependsOn(commonTest) }
         val jsTest by getting { dependsOn(webTest) }
         val wasmJsTest by getting { dependsOn(webTest) }
 
-        val iosTest by creating { dependsOn(commonTest) }
+        val iosTest by creating { dependsOn(cinteropTest) }
         val iosX64Test by getting { dependsOn(iosTest) }
         val iosArm64Test by getting { dependsOn(iosTest) }
         val iosSimulatorArm64Test by getting { dependsOn(iosTest) }
 
-        val nativeTest by creating { dependsOn(commonTest) }
+        val nativeTest by creating { dependsOn(cinteropTest) }
         val mingwX64Test by getting { dependsOn(nativeTest) }
         val linuxX64Test by getting { dependsOn(nativeTest) }
         val macosArm64Test by getting { dependsOn(nativeTest) }
@@ -458,6 +476,15 @@ fun Project.resolveSystemCmakePath(): String {
 dependencies {
     add("kspCommonMainMetadata", project(":extra-gen"))
 }
+
+ksp {
+    arg("project_name", project.name)
+    arg("project_path", rootDir.resolve("extra").canonicalPath)
+    arg("log_level", "info")
+    arg("cpp_type_prefix", "Vk")
+    arg("cpp_output_path", rootDir.resolve("extra/src/jniTest/cpp/ShadyVk").canonicalPath)
+}
+
 afterEvaluate {
     listOf(
         "sourcesJar",

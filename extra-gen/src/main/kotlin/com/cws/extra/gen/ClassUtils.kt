@@ -51,3 +51,12 @@ fun KSDeclaration.qualifiedName(): ClassName {
     names.add(0, current.simpleName.asString())
     return ClassName(packageName, names.first(), *names.drop(1).toTypedArray())
 }
+
+fun KSClassDeclaration.createFunctions(): List<Function> {
+    return getAllFunctions()
+        .filter {
+            val name = it.simpleName.asString()
+            name != "equals" && name != "hashCode" && name != "toString"
+        }
+        .mapNotNull { it.createFunction() }.toList()
+}

@@ -1,0 +1,129 @@
+package com.cws.extra.test
+
+import com.cws.extra.memory.*
+
+import com.cws.extra.lists.decode
+import com.cws.extra.lists.decodeGpu
+import com.cws.extra.lists.sizeBytes
+import com.cws.extra.lists.sizeBytesPacked
+import com.cws.extra.memory.Endian
+import com.cws.extra.memory.MemoryBoundary
+import com.cws.extra.memory.MemoryLayout
+import com.cws.extra.memory.NativeBuffer
+import kotlin.ByteArray
+import kotlin.Int
+
+public fun DamageList?.sizeBytes(memoryLayout: MemoryLayout): Int = if (this == null) 0 else amount.sizeBytes(memoryLayout) + armorPenetration.sizeBytes(memoryLayout)
+
+public fun DamageList?.sizeBytesPacked(memoryLayout: MemoryLayout): Int = if (this == null) 0 else amount.sizeBytesPacked(memoryLayout) + armorPenetration.sizeBytesPacked(memoryLayout)
+
+public fun DamageList?.encode(
+  memoryLayout: MemoryLayout = MemoryLayout.KOTLIN,
+  endian: Endian = Endian.LITTLE,
+  memoryBoundary: MemoryBoundary = MemoryBoundary.KOTLIN_HEAP,
+): NativeBuffer {
+  if (this == null) return NativeBuffer(0)
+  val buffer = NativeBuffer(capacity = sizeBytes(memoryLayout), memoryLayout = memoryLayout, endian = endian, memoryBoundary = memoryBoundary)
+  encode(buffer)
+  return buffer
+}
+
+public fun DamageList?.encodeGpu(
+  memoryLayout: MemoryLayout = MemoryLayout.KOTLIN,
+  endian: Endian = Endian.LITTLE,
+  memoryBoundary: MemoryBoundary = MemoryBoundary.KOTLIN_HEAP,
+): NativeBuffer {
+  if (this == null) return NativeBuffer(0)
+  val buffer = NativeBuffer(capacity = sizeBytes(memoryLayout), memoryLayout = memoryLayout, endian = endian, memoryBoundary = memoryBoundary)
+  encodeGpu(buffer)
+  return buffer
+}
+
+public fun DamageList?.encodePacked(
+  memoryLayout: MemoryLayout = MemoryLayout.KOTLIN,
+  endian: Endian = Endian.LITTLE,
+  memoryBoundary: MemoryBoundary = MemoryBoundary.KOTLIN_HEAP,
+): NativeBuffer {
+  if (this == null) return NativeBuffer(0)
+  val buffer = NativeBuffer(capacity = sizeBytesPacked(memoryLayout), memoryLayout = memoryLayout, endian = endian, memoryBoundary = memoryBoundary)
+  encodePacked(buffer)
+  return buffer
+}
+
+public fun DamageList?.encode(buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushInt(size)
+  for (i in 0 until size) {
+       encode(i, buffer)
+       encode(i, buffer)
+  }
+}
+
+public fun DamageList?.encodeGpu(buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushInt(size)
+  for (i in 0 until size) {
+       encodeGpu(i, buffer)
+       encodeGpu(i, buffer)
+  }
+}
+
+public fun DamageList?.encodePacked(buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushInt(size)
+  for (i in 0 until size) {
+       encodePacked(i, buffer)
+       encodePacked(i, buffer)
+  }
+}
+
+public fun DamageList?.encode(i: Int, buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushFloat(amount[i])
+  buffer.pushFloat(armorPenetration[i])
+}
+
+public fun DamageList?.encodeGpu(i: Int, buffer: NativeBuffer) {
+  if (this == null) return
+  buffer.pushFloat(amount[i])
+  buffer.pushFloat(armorPenetration[i])
+}
+
+public fun DamageList.encodePacked(i: Int, buffer: NativeBuffer) {
+  buffer.pushFloat(amount[i])
+  buffer.pushFloat(armorPenetration[i])
+}
+
+public fun NativeBuffer.decodeDamageList(): DamageList {
+  val decodedSize = nextInt()
+  val buffer = this
+  return DamageList(decodedSize).apply {  
+      for (i in 0 until decodedSize) {
+        decode(i, buffer)
+        decode(i, buffer)
+    }
+  }
+}
+
+public fun NativeBuffer.decodeGpuDamageList(): DamageList {
+  val decodedSize = nextInt()
+  val buffer = this
+  return DamageList(decodedSize).apply {  
+      for (i in 0 until decodedSize) {
+        decode(i, buffer)
+        decode(i, buffer)
+    }
+  }
+}
+
+public fun DamageList.decode(i: Int, buffer: NativeBuffer) {
+    amount.decode(i, buffer)
+    armorPenetration.decode(i, buffer)
+}
+
+public fun DamageList.decodeGpu(i: Int, buffer: NativeBuffer) {
+    amount.decodeGpu(i, buffer)
+    armorPenetration.decodeGpu(i, buffer)
+}
+
+public fun ByteArray.decodeDamageList(): DamageList = NativeBuffer(this).decodeDamageList()

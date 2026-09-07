@@ -19,24 +19,18 @@ package #pkg
 import com.cws.extra.ecs.*
 import com.cws.extra.memory.*
 
-val #T.Companion.COMPONENT_ID: Int get() = #COMPONENT_ID
+val Scene.#extension: #TList get() = components.getComponentList<#T, #TList>()
 
-val Scene.#extension: #TList get() = registry[#T.COMPONENT_ID].list as #TList
+inline fun #TStorage(componentCount: Int) = #TStorage(#TList(componentCount))
 
-inline fun #TStorage(capacity: Int) = #TStorage(
-    #TList(capacity),
-    ComponentPool(capacity),
-)
-
-@ExtraData
 data class #TStorage(
     override val list: #TList,
-    val pool: ComponentPool,
 ) : ComponentStorage {
 
-    override fun <T> add(entity: Int, component: T) {
+    override fun <T> has(component: T): Boolean = component as? #T != null
+
+    override fun <T> add(componentIndex: Int, component: T) {
         val c = component as? #T ?: return
-        val componentIndex = pool.add(entity)
         if (componentIndex == list.size) {
             list.add(c)
         } else {
@@ -44,22 +38,36 @@ data class #TStorage(
         }
     }
 
-    override fun remove(entity: Int) {
-        if (pool.has(entity)) {
-            val index = pool.remove(entity)
-            if (index != ComponentNull) {
-                list.removeAtSwap(index)
-            }
+    override fun remove(componentIndex: Int) {
+        list.removeAtSwap(componentIndex)
+    }
+
+    override fun sizeBytes(memoryLayout: MemoryLayout): Int = list.sizeBytes(memoryLayout)
+    override fun sizeBytesPacked(memoryLayout: MemoryLayout): Int = list.sizeBytesPacked(memoryLayout)
+
+    override fun encode(buffer: NativeBuffer) = list.encode(buffer)
+    override fun encodeGpu(buffer: NativeBuffer) = list.encodeGpu(buffer)
+    override fun encodePacked(buffer: NativeBuffer) = list.encodePacked(buffer)
+
+    override fun decode(buffer: NativeBuffer) {
+        list.resize(buffer.nextInt())
+        for (i in 0 until list.size) {
+            list.decode(i, buffer)
         }
     }
 
-    override fun clear() {
-        list.clear()
-        pool.clear()
+    override fun decodeGpu(buffer: NativeBuffer) {
+        list.resize(buffer.nextInt())
+        for (i in 0 until list.size) {
+            list.decodeGpu(i, buffer)
+        }
     }
 
-    override fun has(entity: Int) = pool.has(entity)
-
-    override fun index(entity: Int) = pool.getComponentIndex(entity)
+    override fun decodePacked(buffer: NativeBuffer) {
+        list.resize(buffer.nextInt())
+        for (i in 0 until list.size) {
+            list.decodeGpu(i, buffer)
+        }
+    }
 
 }

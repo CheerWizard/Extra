@@ -15,7 +15,6 @@
  */
 package com.cws.extra.gen
 
-import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import kotlin.sequences.forEach
@@ -23,39 +22,42 @@ import kotlin.sequences.forEach
 data class ComponentType(
     val type: String,
     val genType: String,
+    val qualifiedName: String,
+    val entityCountPercentage: Float,
 )
 
 class ExtraComponentStorageProcessor(
-    private val logger: KSPLogger,
+    private val logger: ExtraLogger,
     private val fileGenerator: FileGenerator,
+    private val fileTemplateManager: FileTemplateManager,
 ) {
 
     companion object {
         private const val TAG = "ExtraComponentStorageProcessor"
         const val PACKAGE_MEMORY = "com.cws.extra.memory"
-        const val PACKAGE_ECS = "com.cws.extra.ecs"
-        const val COMPONENT_REGISTRY = "ComponentRegistry"
     }
 
-    private var componentIdCounter = 0
     private val componentTypes = mutableSetOf<ComponentType>()
     private val componentPackages = mutableSetOf<String>()
 
-    fun process(resolver: Resolver) {
-        logger.info("$TAG: Scanning for @ExtraComponent...")
+    fun process(resolver: Resolver, projectName: String) {
+        logger.i(TAG) { "Scanning for @ExtraComponent..." }
 
-        resolver
+        val components = resolver
             .getSymbolsWithAnnotation("$PACKAGE_MEMORY.ExtraComponent")
             .filterIsInstance<KSClassDeclaration>()
             .filter { declaration ->
                 declaration.annotations.any { it.shortName.asString() == "ExtraComponent" }
             }
-            .forEach { declaration ->
-                logger.info("$TAG: Generate from $declaration")
-                generateForExtraComponent(declaration)
-            }
 
-        generateComponentRegistry()
+        val projectPackage = components.firstOrNull()?.packageName?.asString().orEmpty()
+
+        components.forEach { declaration ->
+            logger.i(TAG) { "Generate from $declaration" }
+            generateForExtraComponent(declaration)
+        }
+
+        generateComponentRegistry(projectName, projectPackage)
     }
 
     private fun generateForExtraComponent(declaration: KSClassDeclaration) {
@@ -66,71 +68,55 @@ class ExtraComponentStorageProcessor(
 
         if (fileGenerator.contains(genType)) return
 
-        val code = fileGenerator.readTemplate("ComponentStorage")
+        val code = fileTemplateManager.read("ComponentStorage.txt")
             .replace("#pkg", packageName)
             .replace("#T", type)
-            .replace("#extension", "${type.lowercase()}s")
-            .replace("#COMPONENT_ID", componentIdCounter.toString())
+            .replace("#extension", type.lowercase())
 
-        componentIdCounter++
-
-        componentTypes.add(ComponentType(type, genType))
+        componentTypes.add(ComponentType(
+            type,
+            genType,
+            declaration.qualifiedName?.asString().orEmpty(),
+            declaration.extraEntityCountPercentage()
+        ))
         componentPackages.add(packageName)
 
         fileGenerator.generateFile(packageName, genType, code)
     }
 
-    private fun generateComponentRegistry() {
-        if (fileGenerator.contains(COMPONENT_REGISTRY)) return
+    private fun generateComponentRegistry(projectName: String, projectPackage: String) {
+        // always starts naming with uppercase char
+        val filename = "${projectName.replaceFirstChar { it.uppercase() }}Components"
+
+        if (fileGenerator.contains(filename)) return
 
         val code = buildString {
-            appendLine("package $PACKAGE_ECS")
+            appendLine("package $projectPackage")
+            appendLine()
+            appendLine("import com.cws.extra.ecs.ComponentRegistry")
+            appendLine("import com.cws.extra.ecs.validatePercentage")
+            appendLine("import kotlin.math.roundToInt")
             appendLine()
             componentPackages.forEach { pkg ->
                 appendLine("import ${pkg}.*")
             }
-            appendLine("import $PACKAGE_MEMORY.ExtraData")
             appendLine()
-            appendLine("inline fun <reified T> getComponentID(): Int {")
-            appendLine("    return when (T::class) {")
+            appendLine("object $filename {")
+            appendLine()
+            appendLine("    fun registerAll() {")
             componentTypes.forEach { componentType ->
-                appendLine("        ${componentType.type}::class -> ${componentType.type}.COMPONENT_ID")
+                val genType = componentType.genType
+                val entityCountPercentage = componentType.entityCountPercentage
+                appendLine("        ComponentRegistry.register<${componentType.type}>(\"${componentType.qualifiedName}\", validatePercentage(${entityCountPercentage}f)) {\n" +
+                        "             ${genType}((it.toFloat() * validatePercentage(${entityCountPercentage}f)).roundToInt())" +
+                "\n        }")
             }
-            appendLine("        else -> 0")
-            appendLine("    }")
-            appendLine("}")
-            appendLine()
-            appendLine("fun ComponentRegistry(capacity: Int) = ComponentRegistry(")
-            componentTypes.forEach { componentType ->
-                appendLine("    ${componentType.genType}(capacity),")
-            }
-            appendLine(")")
-            appendLine()
-            appendLine("@ExtraData")
-            appendLine("data class ComponentRegistry(")
-            componentTypes.forEach { componentType ->
-                appendLine("    val ${componentType.type.lowercase()}s: ${componentType.genType},")
-            }
-            appendLine(") {")
-            appendLine()
-            appendLine("    private val components = mutableListOf(")
-            componentTypes.forEach { componentType ->
-                appendLine("        ${componentType.type.lowercase()}s,")
-            }
-            appendLine("    )")
-            appendLine()
-            appendLine("    val size: Int get() = components.size")
-            appendLine()
-            appendLine("    operator fun get(i: Int): ComponentStorage = components[i]")
-            appendLine()
-            appendLine("    fun clear() {")
-            appendLine("        components.clear()")
             appendLine("    }")
             appendLine()
             appendLine("}")
         }
 
-        fileGenerator.generateFile(PACKAGE_ECS, COMPONENT_REGISTRY, code)
+        fileGenerator.generateFile(projectPackage, filename, code)
     }
 
 }

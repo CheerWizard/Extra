@@ -150,6 +150,7 @@ actual class NativeBuffer actual constructor(
         destIndex: Int,
         sizeBytes: Int,
     ) {
+        requireCopyBounds(dest, srcIndex, destIndex, sizeBytes)
         when {
             isHeapBoundary() && dest.isHeapBoundary() -> {
                 heapBuffer?.usePinned { srcPinned ->

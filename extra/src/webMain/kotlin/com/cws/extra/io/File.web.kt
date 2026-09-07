@@ -101,7 +101,7 @@ actual class File actual constructor(
 
     internal actual suspend fun mapImpl(offset: Int, size: Int): NativeBuffer? {
         val buffer = buffer ?: return null
-        val slice = buffer.buffer?.slice(offset, size) ?: return null
+        val slice = buffer.buffer?.slice(offset, offset + size) ?: return null
         mapped = NativeBuffer(slice)
         return mapped
     }

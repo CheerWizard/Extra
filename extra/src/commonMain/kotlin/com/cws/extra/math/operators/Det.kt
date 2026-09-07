@@ -15,9 +15,7 @@
  */
 package com.cws.extra.math.operators
 
-import com.cws.extra.math.matrices.Mat2
-import com.cws.extra.math.matrices.Mat3
-import com.cws.extra.math.matrices.Mat4
+import com.cws.extra.math.matrices.*
 
 fun det(m: Mat2): Float =
     det(
@@ -25,6 +23,14 @@ fun det(m: Mat2): Float =
         m.m01,
         m.m10,
         m.m11,
+    )
+
+fun det(l: Mat2List, i: Int): Float =
+    det(
+        l.m00[i],
+        l.m01[i],
+        l.m10[i],
+        l.m11[i],
     )
 
 fun det(
@@ -46,6 +52,19 @@ fun det(m: Mat3): Float =
         m.m20,
         m.m21,
         m.m22,
+    )
+
+fun det(l: Mat3List, i: Int): Float =
+    det(
+        l.m00[i],
+        l.m01[i],
+        l.m02[i],
+        l.m10[i],
+        l.m11[i],
+        l.m12[i],
+        l.m20[i],
+        l.m21[i],
+        l.m22[i],
     )
 
 fun det(
@@ -84,6 +103,26 @@ fun det(m: Mat4): Float =
         m.m31,
         m.m32,
         m.m33,
+    )
+
+fun det(l: Mat4List, i: Int): Float =
+    det(
+        l.m00[i],
+        l.m01[i],
+        l.m02[i],
+        l.m03[i],
+        l.m10[i],
+        l.m11[i],
+        l.m12[i],
+        l.m13[i],
+        l.m20[i],
+        l.m21[i],
+        l.m22[i],
+        l.m23[i],
+        l.m30[i],
+        l.m31[i],
+        l.m32[i],
+        l.m33[i],
     )
 
 fun det(

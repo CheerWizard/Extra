@@ -19,6 +19,12 @@
 package com.cws.extra.lists
 
 import com.cws.extra.memory.ExtraData
+import com.cws.extra.memory.NativeBuffer
+import com.cws.extra.memory.nextLong
+import com.cws.extra.memory.nextShort
+import com.cws.extra.memory.pushLong
+import com.cws.extra.memory.pushShort
+import kotlinx.serialization.Serializable
 
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -27,13 +33,17 @@ import kotlin.random.Random
 inline fun ShortList(
     capacity: Int = 16,
     noinline init: (Int) -> Short = { 0 }
-) = ShortList(ShortArray(capacity, init))
+) = ShortList(0, ShortArray(capacity, init))
 
+@Serializable
 @ExtraData
 class ShortList(
-    var array: ShortArray,
     var size: Int = 0,
+    var array: ShortArray,
 ) {
+
+    @PublishedApi
+    internal var __sortStack: LongArray? = null
 
     inline val capacity: Int
         get() = array.size
@@ -105,8 +115,20 @@ class ShortList(
 
     inline fun removeLast(): Short = pop()
 
+    inline fun resize(newSize: Int) {
+        if (newSize > capacity) {
+            reallocate(newSize)
+        }
+        size = newSize
+    }
+
     inline fun ensureCapacity(newCapacity: Int) {
-        if (newCapacity <= array.size) return
+        if (newCapacity > array.size) {
+            reallocate(newCapacity)
+        }
+    }
+
+    inline fun reallocate(newCapacity: Int) {
         array = array.copyOf((newCapacity * 1.1f).roundToInt())
     }
 
@@ -132,9 +154,7 @@ class ShortList(
     }
 
     inline fun clone(): ShortList {
-        val copy = ShortList(array.copyOf())
-        copy.size = size
-        return copy
+        return ShortList(size, array.copyOf())
     }
 
     inline fun forEach(block: (Short) -> Unit) {
@@ -181,6 +201,16 @@ class ShortList(
         return result
     }
 
+    inline fun filterWith(block: (Short) -> Boolean): ShortList {
+        var writeIndex = 0
+        for (readIndex in 0 until size) {
+            val value = array[readIndex]
+            if (block(value)) array[writeIndex++] = value
+        }
+        size = writeIndex
+        return this
+    }
+
     inline fun sort() {
         array.sort(0, size)
     }
@@ -194,6 +224,183 @@ class ShortList(
 
     inline fun sortedDescending(): ShortList =
         clone().apply { sortDescending() }
+
+
+    inline fun sortByInt(crossinline selector: (Short) -> Int) {
+        if (size < 2) return
+        val stack = __sortStack ?: LongArray(64).also { __sortStack = it }
+        var stackSize = 0
+        stack[stackSize++] = (size - 1).toLong() and 0xffffffffL
+
+        while (stackSize > 0) {
+            val range = stack[--stackSize]
+            var from = (range ushr 32).toInt()
+            var to = range.toInt()
+
+            while (from < to) {
+                var left = from
+                var right = to
+                val first = selector(array[from])
+                val middle = selector(array[(from + to) ushr 1])
+                val last = selector(array[to])
+                val pivot = if (first < middle) {
+                    if (middle < last) middle else if (first < last) last else first
+                } else {
+                    if (first < last) first else if (middle < last) last else middle
+                }
+
+                while (left <= right) {
+                    while (selector(array[left]) < pivot) left++
+                    while (selector(array[right]) > pivot) right--
+                    if (left <= right) {
+                        val value = array[left]
+                        array[left++] = array[right]
+                        array[right--] = value
+                    }
+                }
+
+                if (right - from < to - left) {
+                    if (left < to) stack[stackSize++] = (left.toLong() shl 32) or (to.toLong() and 0xffffffffL)
+                    to = right
+                } else {
+                    if (from < right) stack[stackSize++] = (from.toLong() shl 32) or (right.toLong() and 0xffffffffL)
+                    from = left
+                }
+            }
+        }
+    }
+
+    inline fun sortByLong(crossinline selector: (Short) -> Long) {
+        if (size < 2) return
+        val stack = __sortStack ?: LongArray(64).also { __sortStack = it }
+        var stackSize = 0
+        stack[stackSize++] = (size - 1).toLong() and 0xffffffffL
+
+        while (stackSize > 0) {
+            val range = stack[--stackSize]
+            var from = (range ushr 32).toInt()
+            var to = range.toInt()
+
+            while (from < to) {
+                var left = from
+                var right = to
+                val first = selector(array[from])
+                val middle = selector(array[(from + to) ushr 1])
+                val last = selector(array[to])
+                val pivot = if (first < middle) {
+                    if (middle < last) middle else if (first < last) last else first
+                } else {
+                    if (first < last) first else if (middle < last) last else middle
+                }
+
+                while (left <= right) {
+                    while (selector(array[left]) < pivot) left++
+                    while (selector(array[right]) > pivot) right--
+                    if (left <= right) {
+                        val value = array[left]
+                        array[left++] = array[right]
+                        array[right--] = value
+                    }
+                }
+
+                if (right - from < to - left) {
+                    if (left < to) stack[stackSize++] = (left.toLong() shl 32) or (to.toLong() and 0xffffffffL)
+                    to = right
+                } else {
+                    if (from < right) stack[stackSize++] = (from.toLong() shl 32) or (right.toLong() and 0xffffffffL)
+                    from = left
+                }
+            }
+        }
+    }
+
+    inline fun sortByFloat(crossinline selector: (Short) -> Float) {
+        if (size < 2) return
+        val stack = __sortStack ?: LongArray(64).also { __sortStack = it }
+        var stackSize = 0
+        stack[stackSize++] = (size - 1).toLong() and 0xffffffffL
+
+        while (stackSize > 0) {
+            val range = stack[--stackSize]
+            var from = (range ushr 32).toInt()
+            var to = range.toInt()
+
+            while (from < to) {
+                var left = from
+                var right = to
+                val first = selector(array[from])
+                val middle = selector(array[(from + to) ushr 1])
+                val last = selector(array[to])
+                val pivot = if (first < middle) {
+                    if (middle < last) middle else if (first < last) last else first
+                } else {
+                    if (first < last) first else if (middle < last) last else middle
+                }
+
+                while (left <= right) {
+                    while (selector(array[left]) < pivot) left++
+                    while (selector(array[right]) > pivot) right--
+                    if (left <= right) {
+                        val value = array[left]
+                        array[left++] = array[right]
+                        array[right--] = value
+                    }
+                }
+
+                if (right - from < to - left) {
+                    if (left < to) stack[stackSize++] = (left.toLong() shl 32) or (to.toLong() and 0xffffffffL)
+                    to = right
+                } else {
+                    if (from < right) stack[stackSize++] = (from.toLong() shl 32) or (right.toLong() and 0xffffffffL)
+                    from = left
+                }
+            }
+        }
+    }
+
+    inline fun sortByDouble(crossinline selector: (Short) -> Double) {
+        if (size < 2) return
+        val stack = __sortStack ?: LongArray(64).also { __sortStack = it }
+        var stackSize = 0
+        stack[stackSize++] = (size - 1).toLong() and 0xffffffffL
+
+        while (stackSize > 0) {
+            val range = stack[--stackSize]
+            var from = (range ushr 32).toInt()
+            var to = range.toInt()
+
+            while (from < to) {
+                var left = from
+                var right = to
+                val first = selector(array[from])
+                val middle = selector(array[(from + to) ushr 1])
+                val last = selector(array[to])
+                val pivot = if (first < middle) {
+                    if (middle < last) middle else if (first < last) last else first
+                } else {
+                    if (first < last) first else if (middle < last) last else middle
+                }
+
+                while (left <= right) {
+                    while (selector(array[left]) < pivot) left++
+                    while (selector(array[right]) > pivot) right--
+                    if (left <= right) {
+                        val value = array[left]
+                        array[left++] = array[right]
+                        array[right--] = value
+                    }
+                }
+
+                if (right - from < to - left) {
+                    if (left < to) stack[stackSize++] = (left.toLong() shl 32) or (to.toLong() and 0xffffffffL)
+                    to = right
+                } else {
+                    if (from < right) stack[stackSize++] = (from.toLong() shl 32) or (right.toLong() and 0xffffffffL)
+                    from = left
+                }
+            }
+        }
+    }
 
     fun sortWith(comparator: (Short, Short) -> Int) {
 
@@ -277,3 +484,11 @@ class ShortList(
         size += source.size
     }
 }
+
+inline fun ShortList.encode(i: Int, buffer: NativeBuffer) = buffer.pushShort(array[i])
+inline fun ShortList.encodeGpu(i: Int, buffer: NativeBuffer) = buffer.pushShort(array[i])
+inline fun ShortList.encodePacked(i: Int, buffer: NativeBuffer) = buffer.pushShort(array[i])
+
+inline fun ShortList.decode(i: Int, buffer: NativeBuffer) { array[i] = buffer.nextShort() }
+inline fun ShortList.decodeGpu(i: Int, buffer: NativeBuffer) { array[i] = buffer.nextShort() }
+inline fun ShortList.decodePacked(i: Int, buffer: NativeBuffer) { array[i] = buffer.nextShort() }
