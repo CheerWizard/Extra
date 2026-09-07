@@ -35,9 +35,21 @@ plugins {
 group = "io.github.cheerwizard"
 version = "1.0.19"
 
+val frozenGeneratedKotlinFiles: Array<String> = rootProject
+    .file("scripts/frozen-sources/generated-files.txt")
+    .takeIf { it.isFile }
+    ?.readLines()
+    ?.mapNotNull { path ->
+        val modulePrefix = "${project.name}/"
+        path.removePrefix(modulePrefix).takeIf { it != path }
+    }
+    ?.toTypedArray()
+    ?: emptyArray()
+
 spotless {
     kotlin {
         target("**/*.kt")
+        targetExclude(*frozenGeneratedKotlinFiles)
         licenseHeaderFile(
             rootProject.layout.projectDirectory.file("config/license.txt").asFile,
             "^(@file:|package)"
