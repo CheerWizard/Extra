@@ -39,12 +39,6 @@ class ExtraProcessor(
     companion object {
         private const val TAG = "ExtraProcessor"
         private const val FUNCTION_SUFFIX_GPU = "Gpu"
-
-        // Release sources for the Extra module include their generated companions. Disable this
-        // only while intentionally refreshing those checked-in files.
-        private const val FREEZE_VERSION = true
-
-        private const val PROJECT_NAME = "extra"
         const val PACKAGE_CORE = "com.cws.extra"
         private const val PACKAGE_MEMORY = "com.cws.extra.memory"
     }
@@ -52,6 +46,7 @@ class ExtraProcessor(
     private val generator: CodeGenerator = environment.codeGenerator
     private val projectName = environment.options["project_name"].orEmpty()
     private val projectPath = environment.options["project_path"].orEmpty()
+    private val enableCodegen = environment.options["enable_codegen"].orEmpty() == "true"
     private val logLevel = environment.options["log_level"].toExtraLogLevel()
     private val logger = ExtraLogger(environment.logger, logLevel)
 
@@ -67,14 +62,14 @@ class ExtraProcessor(
     private val extraListProcessor = ExtraListProcessor(
         logger = logger,
         fileGenerator = fileGenerator,
-        generateMathTypes = !FREEZE_VERSION,
+        generateMathTypes = enableCodegen,
     )
     private val extraComponentStorageProcessor = ExtraComponentStorageProcessor(logger, fileGenerator, fileTemplateManager)
 
     private val cppProcessor = ExtraCppProcessor(environment, logger, fileTemplateManager, projectPath)
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        if (FREEZE_VERSION && projectName == PROJECT_NAME) {
+        if (!enableCodegen) {
             logger.i(TAG) { "Skipping code generation for frozen project '$projectName'" }
             return emptyList()
         }

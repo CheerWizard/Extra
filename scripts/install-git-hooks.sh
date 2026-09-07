@@ -3,5 +3,5 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
-git config core.hooksPath .githooks
-echo "Installed Extra repository hooks from .githooks."
+git config core.hooksPath scripts/git-hooks
+echo "Installed repository hooks from scripts/git-hooks."

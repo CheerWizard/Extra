@@ -480,6 +480,7 @@ dependencies {
 ksp {
     arg("project_name", project.name)
     arg("project_path", rootDir.resolve("extra").canonicalPath)
+    arg("enable_codegen", "false")
     arg("log_level", "info")
     arg("cpp_type_prefix", "Vk")
     arg("cpp_output_path", rootDir.resolve("extra/src/jniTest/cpp/ShadyVk").canonicalPath)
