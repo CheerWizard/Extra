@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import hashlib
+import re
 from pathlib import Path
 
 
@@ -8,6 +9,23 @@ ROOT = Path(__file__).resolve().parent.parent
 STATE_DIR = ROOT / "scripts" / "frozen-sources"
 MANIFEST = STATE_DIR / "generated-files.txt"
 FINGERPRINT = STATE_DIR / "inputs.sha256"
+PROCESSOR = ROOT / "extra-gen/src/main/kotlin/com/cws/extra/gen/ExtraProcessor.kt"
+FREEZE_VERSION_PATTERN = re.compile(
+    r"^\s*private\s+const\s+val\s+FREEZE_VERSION\s*=\s*(true|false)\s*$",
+    re.MULTILINE,
+)
+
+
+def check_freeze_version() -> bool:
+    matches = FREEZE_VERSION_PATTERN.findall(PROCESSOR.read_text())
+    if len(matches) != 1:
+        print(f"Expected exactly one FREEZE_VERSION declaration in {PROCESSOR}.")
+        return False
+    if matches[0] != "true":
+        print("ExtraProcessor.FREEZE_VERSION must be true for committed/release sources.")
+        print("Run scripts/regenerate-sources.sh to regenerate and restore frozen sources.")
+        return False
+    return True
 
 
 def input_files() -> list[Path]:
@@ -54,6 +72,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
+    if not check_freeze_version():
+        return 1
     actual_inputs = hash_files(input_files())
     actual_outputs = hash_files(generated_files())
     if args.write:
