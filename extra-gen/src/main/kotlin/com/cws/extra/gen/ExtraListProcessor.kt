@@ -75,7 +75,9 @@ class ExtraListProcessor(
             //  and keep data layout in CPU cache locality
             .filter { !it.type.isCollection }
         val file = buildExtraList(packageName, name, fields)
-        fileGenerator.generateFile(packageName, "${name}List", file)
+        if (file.isNotBlank()) {
+            fileGenerator.generateFile(packageName, "${name}List", file)
+        }
     }
 
     private fun getExtraListImport(field: Field): String {

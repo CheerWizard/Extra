@@ -140,7 +140,6 @@ extra/src/commonTest/kotlin/com/cws/extra/test/SurfaceHandle.gen.kt
 extra/src/commonTest/kotlin/com/cws/extra/test/SwapchainInfo.gen.kt
 extra/src/commonTest/kotlin/com/cws/extra/test/TestData.gen.kt
 extra/src/commonTest/kotlin/com/cws/extra/test/TestEnumOrdinal.gen.kt
-extra/src/commonTest/kotlin/com/cws/extra/test/TestEnumOrdinalList.kt
 extra/src/commonTest/kotlin/com/cws/extra/test/TestEnumRaw.gen.kt
 extra/src/commonTest/kotlin/com/cws/extra/test/TestEnumRawList.gen.kt
 extra/src/commonTest/kotlin/com/cws/extra/test/TestEnumRawList.kt

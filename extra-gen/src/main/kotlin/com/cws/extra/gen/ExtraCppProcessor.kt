@@ -426,6 +426,7 @@ class ExtraCppProcessor(
             "kt",
         ).bufferedWriter().use {
             it.write("// aggregating tracker for Extra C++ output — do not edit\n")
+            it.write("package ${PACKAGE_CORE}.tracker\n")
         }
     }
 
