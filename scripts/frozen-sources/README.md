@@ -45,8 +45,9 @@ scripts/regenerate-sources.sh
 
 The script temporarily sets `enable_codegen=true`, runs the module's KSP metadata task, discovers
 generated Kotlin source sets and their conventional destinations, restores `enable_codegen=false`,
-runs the module build, and updates the committed fingerprints. It keeps a temporary backup and
-restores the previous snapshot if generation or verification fails.
+runs the KSP generation task, updates the manifest and committed fingerprints, and restores
+`enable_codegen=false` when finished. It keeps a temporary backup and restores the previous
+snapshot if KSP generation fails.
 
 Review and commit the resulting generated-source, manifest, and fingerprint changes together
 with the source change.

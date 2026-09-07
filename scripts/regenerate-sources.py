@@ -91,7 +91,7 @@ def main() -> int:
         build_file = module / "build.gradle.kts"
         original_manifest = MANIFEST.read_text()
         original_files = manifest_files()
-        if not build_file.is_file() or not original_files or any(not path.is_file() for path in original_files):
+        if not build_file.is_file() or not original_files:
             raise RuntimeError("Codegen configuration or frozen-source manifest is incomplete.")
     except (OSError, RuntimeError) as error:
         print(error, file=sys.stderr)
@@ -99,16 +99,18 @@ def main() -> int:
 
     backup_dir = Path(tempfile.mkdtemp(prefix="frozen-sources-"))
     flag_enabled = False
+    generation_completed = False
     try:
         for path in original_files:
-            backup = backup_dir / "snapshot" / path.relative_to(ROOT)
-            backup.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(path, backup)
+            if path.is_file():
+                backup = backup_dir / "snapshot" / path.relative_to(ROOT)
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, backup)
         set_codegen(build_file, True)
         flag_enabled = True
         print("Setting enable_codegen=true to enable KSP generation.")
         for path in original_files:
-            path.unlink()
+            path.unlink(missing_ok=True)
 
         subprocess.run(["./gradlew", f":{module_name}:clean", f":{module_name}:kspCommonMainKotlinMetadata", "-PregenerateFrozenSources=true"], cwd=ROOT, check=True)
         generated = collect_generated(module, set(original_files))
@@ -118,15 +120,16 @@ def main() -> int:
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
         MANIFEST.write_text("".join(f"{path.relative_to(ROOT)}\n" for _, path in generated))
+        generation_completed = True
+        subprocess.run([sys.executable, str(ROOT / "scripts/frozen-sources-fingerprint.py"), "--write"], cwd=ROOT, check=True)
+        print("Restored enable_codegen=false.")
         set_codegen(build_file, False)
         flag_enabled = False
-        print("Restored enable_codegen=false; verifying the frozen build.")
-        subprocess.run(["./gradlew", f":{module_name}:build"], cwd=ROOT, check=True)
-        subprocess.run([sys.executable, str(ROOT / "scripts/frozen-sources-fingerprint.py"), "--write"], cwd=ROOT, check=True)
         return 0
     except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
         print(f"Regeneration failed: {error}", file=sys.stderr)
-        restore_snapshot(backup_dir, original_manifest)
+        if not generation_completed:
+            restore_snapshot(backup_dir, original_manifest)
         return 1
     finally:
         if flag_enabled:

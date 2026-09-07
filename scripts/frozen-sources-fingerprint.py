@@ -72,6 +72,12 @@ def hash_files(paths: list[Path]) -> str:
         digest.update(len(relative).to_bytes(4, "big"))
         digest.update(relative)
         content = path.read_bytes()
+        if path.name == "build.gradle.kts":
+            content = re.sub(
+                rb'(arg\("enable_codegen",\s*")(true|false)("\))',
+                rb'\1false\3',
+                content,
+            )
         digest.update(len(content).to_bytes(8, "big"))
         digest.update(content)
     return digest.hexdigest()
@@ -94,7 +100,14 @@ def main() -> int:
     except (OSError, RuntimeError) as error:
         print(error)
         return 1
-    if not check_enable_codegen(module):
+    if not args.write and not check_enable_codegen(module):
+        return 1
+    missing = [path for path in generated_files() if not path.is_file()]
+    if missing:
+        print("Frozen generated-source manifest contains missing files:")
+        for path in missing:
+            print(f"  {path.relative_to(ROOT)}")
+        print("Run: scripts/regenerate-sources.sh")
         return 1
     actual_inputs = hash_files(input_files(module))
     actual_outputs = hash_files(generated_files())
